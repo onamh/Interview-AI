@@ -1,0 +1,36 @@
+.setup-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.setup-form {
+  width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.setup-form h1 {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.setup-form label {
+  font-weight: 600;
+}
+
+.setup-form select,
+.setup-form button {
+  padding: 10px;
+  font-size: 16px;
+}
+
+.setup-form button {
+  margin-top: 15px;
+  cursor: pointer;
+}
