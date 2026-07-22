@@ -1,21 +1,21 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from app.services.interview import create_interview_session
+
 router = APIRouter()
 
 
 class InterviewRequest(BaseModel):
     role: str
-    experience: str
-    interview_type: str
     language: str
+    experience: str
+    difficulty: str
+    interview_type: str
     questions: int
+    follow_up: bool
 
 
 @router.post("/interview/start")
 def start_interview(data: InterviewRequest):
-
-    return {
-        "message": "Interview session created successfully",
-        "data": data
-    }
+    return create_interview_session(data)
