@@ -1,8 +1,12 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./InterviewSetup.css";
 import jobRoles from "../data/jobRoles";
+import { startInterview } from "../api/interviewApi";
 
 function InterviewSetup() {
+  const navigate = useNavigate();
+
   const [role, setRole] = useState("");
   const [language, setLanguage] = useState("Python");
   const [experience, setExperience] = useState("Beginner");
@@ -15,7 +19,6 @@ function InterviewSetup() {
   // Handle role input and suggestions
   const handleRoleChange = (e) => {
     const value = e.target.value;
-
     setRole(value);
 
     if (value.trim() === "") {
@@ -31,18 +34,33 @@ function InterviewSetup() {
   };
 
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    console.log({
-      role,
-      language,
-      experience,
-      difficulty,
-      type,
-      questions,
-      followUp,
-    });
+    try {
+      const response = await startInterview({
+        role,
+        language,
+        experience,
+        difficulty,
+        interview_type: type,
+        questions,
+        follow_up: followUp,
+      });
+
+      console.log("Interview Started:", response);
+
+      navigate("/interview", {
+        state: {
+          sessionId: response.session_id,
+          interview: response.interview,
+          firstQuestion: response.first_question,
+        },
+      });
+    } catch (error) {
+      console.error(error);
+      alert("Unable to start interview.");
+    }
   };
 
   return (
