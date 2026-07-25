@@ -35,33 +35,34 @@ function InterviewSetup() {
 
   // Handle form submission
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    try {
-      const response = await startInterview({
+  try {
+    const response = await startInterview({
+      role,
+      language,
+      experience,
+      difficulty,
+      interview_type: type,
+      questions,
+      follow_up: followUp,
+    });
+
+    console.log("Interview Started:", response);
+    //alert(JSON.stringify(response, null, 2));
+
+    navigate(`/interview/${response.session_id}`, {
+    state: {
+        ...response,
         role,
-        language,
-        experience,
-        difficulty,
-        interview_type: type,
-        questions,
-        follow_up: followUp,
-      });
+    },
+});
 
-      console.log("Interview Started:", response);
-
-      navigate("/interview", {
-        state: {
-          sessionId: response.session_id,
-          interview: response.interview,
-          firstQuestion: response.first_question,
-        },
-      });
-    } catch (error) {
-      console.error(error);
-      alert("Unable to start interview.");
-    }
-  };
+  } catch (error) {
+    console.error(error);
+    alert("Unable to start interview.");
+  }
+};
 
   return (
     <div className="setup-container">

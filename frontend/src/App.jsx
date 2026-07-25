@@ -4,15 +4,23 @@ import Home from "./pages/Home";
 import InterviewSetup from "./pages/InterviewSetup";
 import Interview from "./pages/Interview";
 import Result from "./pages/Result";
+import Evaluation from "./pages/Evaluation";
+import Dashboard from "./pages/Dashboard";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/setup" element={<InterviewSetup />} />
-        <Route path="/interview" element={<Interview />} />
+        <Route path="/" element={<Dashboard />} />
+
+        <Route
+           path="/setup"
+          element={<InterviewSetup />}
+        />
+        <Route path="/interview/:sessionId" element={<Interview />} />
         <Route path="/result" element={<Result />} />
+        <Route path="/evaluation" element={<Evaluation />} />
       </Routes>
     </BrowserRouter>
   );

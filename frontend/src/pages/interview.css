@@ -1,0 +1,170 @@
+/* ================= GLOBAL ================= */
+
+.interview-container {
+  max-width: 950px;
+  margin: 40px auto;
+  padding: 30px;
+  font-family: Inter, Arial, Helvetica, sans-serif;
+}
+
+/* ================= HEADER ================= */
+
+.interview-container h1 {
+  text-align: center;
+  margin-bottom: 35px;
+  color: #222;
+  font-size: 36px;
+  font-weight: 700;
+}
+
+/* ================= PROGRESS ================= */
+
+.progress-container {
+  width: 100%;
+  height: 14px;
+  background: #e5e7eb;
+  border-radius: 30px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    #4f46e5,
+    #2563eb,
+    #06b6d4
+  );
+  transition: width 0.5s ease;
+}
+
+.progress-text {
+  text-align: right;
+  margin-bottom: 30px;
+  color: #555;
+  font-weight: 600;
+}
+
+/* ================= QUESTION CARD ================= */
+
+.question-card {
+  background: white;
+  border-radius: 18px;
+  padding: 30px;
+  margin-bottom: 25px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  transition: 0.3s;
+}
+
+.question-card:hover {
+  transform: translateY(-3px);
+}
+
+.question-card h3 {
+  color: #4f46e5;
+  margin-bottom: 18px;
+}
+
+.question {
+  font-size: 22px;
+  line-height: 1.8;
+  color: #222;
+}
+
+/* ================= ANSWER BOX ================= */
+
+.answer-box {
+  width: 100%;
+  min-height: 230px;
+  padding: 18px;
+  font-size: 16px;
+  border: 2px solid #ddd;
+  border-radius: 14px;
+  resize: vertical;
+  outline: none;
+  transition: 0.3s;
+  line-height: 1.6;
+  background: white;
+}
+
+.answer-box:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 12px rgba(79, 70, 229, 0.2);
+}
+
+.character-count {
+  text-align: right;
+  margin-top: 10px;
+  color: #666;
+  font-size: 14px;
+}
+
+/* ================= BUTTON ================= */
+
+.next-btn {
+  width: 100%;
+  padding: 16px;
+  margin-top: 28px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    #4f46e5,
+    #2563eb
+  );
+  color: white;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.next-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(79, 70, 229, 0.3);
+}
+
+.next-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ================= LOADING ================= */
+
+.loading {
+  text-align: center;
+  margin-top: 20px;
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+/* ================= RESPONSIVE ================= */
+
+@media (max-width: 768px) {
+
+  .interview-container {
+    padding: 20px;
+  }
+
+  .interview-container h1 {
+    font-size: 30px;
+  }
+
+  .question-card {
+    padding: 22px;
+  }
+
+  .question {
+    font-size: 18px;
+  }
+
+  .answer-box {
+    min-height: 180px;
+    font-size: 15px;
+  }
+
+  .next-btn {
+    padding: 14px;
+  }
+}
