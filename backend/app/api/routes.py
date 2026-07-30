@@ -1,5 +1,9 @@
-from fastapi import APIRouter
+from typing import Optional
+
+from fastapi import APIRouter, UploadFile, File
 from pydantic import BaseModel
+
+from app.services.resume import process_resume
 
 from app.services.interview import (
     create_interview_session,
@@ -11,9 +15,9 @@ from app.services.interview import (
 router = APIRouter()
 
 
-# ==========================
+# ==================================================
 # Request Models
-# ==========================
+# ==================================================
 
 class InterviewRequest(BaseModel):
     role: str
@@ -23,6 +27,9 @@ class InterviewRequest(BaseModel):
     interview_type: str
     questions: int
     follow_up: bool
+
+    # Optional resume analysis
+    resume_analysis: Optional[dict] = None
 
 
 class AnswerRequest(BaseModel):
@@ -34,18 +41,18 @@ class EvaluationRequest(BaseModel):
     session_id: str
 
 
-# ==========================
-# Start Interview
-# ==========================
+# ==================================================
+# Interview Start
+# ==================================================
 
 @router.post("/interview/start")
 def start_interview(data: InterviewRequest):
     return create_interview_session(data)
 
 
-# ==========================
+# ==================================================
 # Next Question
-# ==========================
+# ==================================================
 
 @router.post("/interview/next")
 def interview_next(data: AnswerRequest):
@@ -63,9 +70,9 @@ def interview_next(data: AnswerRequest):
     return next_question(data.session_id)
 
 
-# ==========================
+# ==================================================
 # Final Evaluation
-# ==========================
+# ==================================================
 
 @router.post("/interview/evaluate")
 def interview_evaluate(data: EvaluationRequest):
@@ -78,3 +85,20 @@ def interview_evaluate(data: EvaluationRequest):
         }
 
     return evaluation
+
+
+# ==================================================
+# Resume Upload
+# ==================================================
+
+@router.post("/resume/upload")
+def upload_resume(file: UploadFile = File(...)):
+    """
+    Upload a resume, extract its text,
+    analyze it with Gemini,
+    and return the structured analysis.
+    """
+
+    analysis = process_resume(file.file)
+
+    return analysis

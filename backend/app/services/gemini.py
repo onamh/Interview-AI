@@ -5,7 +5,11 @@ from google import genai
 from google.genai.errors import ClientError, ServerError
 
 from app.config import GEMINI_API_KEY, GEMINI_MODEL
-from app.utils.prompts import interview_start_prompt
+
+from app.utils.prompts import (
+    interview_start_prompt,
+    interview_evaluation_prompt,
+)
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
@@ -50,9 +54,10 @@ def generate_complete_interview(
     difficulty,
     interview_type,
     total_questions,
+    resume_analysis=None,
 ):
     """
-    Generates the entire interview in ONE Gemini API call.
+    Generates the complete interview in one Gemini call.
     """
 
     prompt = interview_start_prompt(
@@ -62,11 +67,11 @@ def generate_complete_interview(
         difficulty=difficulty,
         interview_type=interview_type,
         total_questions=total_questions,
+        resume_analysis=resume_analysis,
     )
 
     text = _generate(prompt)
 
-    # Remove markdown if Gemini adds it
     text = re.sub(r"```json", "", text)
     text = re.sub(r"```", "", text).strip()
 
@@ -78,9 +83,7 @@ def generate_complete_interview(
             "Gemini returned invalid JSON."
         )
 
-    # -----------------------------
     # Validation
-    # -----------------------------
 
     if "roadmap" not in data:
         raise Exception("Roadmap missing.")
@@ -108,7 +111,7 @@ def generate_complete_interview(
 
 
 # =====================================================
-# Final Interview Evaluation
+# Final Evaluation
 # =====================================================
 
 def evaluate_interview(
@@ -119,95 +122,22 @@ def evaluate_interview(
     interview_type,
     questions,
     answers,
+    resume_analysis=None,
 ):
     """
-    Evaluate the complete interview after the candidate
-    finishes every question.
+    Evaluate the completed interview.
     """
 
-    interview_history = ""
-
-    for i, (question, answer) in enumerate(
-        zip(questions, answers),
-        start=1,
-    ):
-        interview_history += f"""
-Question {i}
-{question}
-
-Candidate Answer
-{answer}
-
-"""
-
-    prompt = f"""
-You are a senior technical interviewer.
-
-Evaluate the completed interview.
-
-Candidate
-
-Role: {role}
-Technology: {language}
-Experience: {experience}
-Difficulty: {difficulty}
-Interview Type: {interview_type}
-
-Interview Transcript
-
-{interview_history}
-
-Return ONLY valid JSON.
-
-Format
-
-{{
-    "overall_score": 85,
-    "technical_score": 82,
-    "communication_score": 90,
-
-    "strengths": [
-        "...",
-        "..."
-    ],
-
-    "weaknesses": [
-        "...",
-        "..."
-    ],
-
-    "suggestions": [
-        "...",
-        "..."
-    ],
-
-    "overall_feedback": "..."
-}}
-
-Rules
-
-1. Scores must be between 0 and 100.
-
-2. Evaluate based on all answers together.
-
-3. Do NOT evaluate each question separately.
-
-4. Mention strengths.
-
-5. Mention weaknesses.
-
-6. Give practical improvement suggestions.
-
-7. Overall feedback should be 4-6 sentences.
-
-8. Return ONLY JSON.
-
-9. No markdown.
-
-10. No explanation.
-
-11. No code block.
-"""
+    prompt = interview_evaluation_prompt(
+        role=role,
+        language=language,
+        experience=experience,
+        difficulty=difficulty,
+        interview_type=interview_type,
+        resume_analysis=resume_analysis,
+        questions=questions,
+        answers=answers,
+    )
 
     text = _generate(prompt)
 
