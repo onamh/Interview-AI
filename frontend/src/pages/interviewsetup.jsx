@@ -2,7 +2,11 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./InterviewSetup.css";
 import jobRoles from "../data/jobRoles";
-import { startInterview } from "../api/interviewApi";
+
+import {
+  startInterview,
+  uploadResume,
+} from "../api/interviewApi";
 
 function InterviewSetup() {
   const navigate = useNavigate();
@@ -14,11 +18,22 @@ function InterviewSetup() {
   const [type, setType] = useState("Technical");
   const [questions, setQuestions] = useState(5);
   const [followUp, setFollowUp] = useState(true);
+
   const [filteredRoles, setFilteredRoles] = useState([]);
 
-  // Handle role input and suggestions
+  /* Resume */
+
+  const [resumeFile, setResumeFile] = useState(null);
+  const [resumeAnalysis, setResumeAnalysis] = useState(null);
+  const [uploading, setUploading] = useState(false);
+
+  // -----------------------------
+  // Job Role Suggestions
+  // -----------------------------
+
   const handleRoleChange = (e) => {
     const value = e.target.value;
+
     setRole(value);
 
     if (value.trim() === "") {
@@ -33,43 +48,79 @@ function InterviewSetup() {
     setFilteredRoles(filtered);
   };
 
-  // Handle form submission
+  // -----------------------------
+  // Resume Upload
+  // -----------------------------
+
+  const handleResumeUpload = async (e) => {
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    setResumeFile(file);
+    setUploading(true);
+
+    try {
+      const analysis = await uploadResume(file);
+
+      setResumeAnalysis(analysis);
+
+      alert("Resume analyzed successfully!");
+    } catch (error) {
+      console.error(error);
+
+      alert("Resume upload failed.");
+    }
+
+    setUploading(false);
+  };
+
+  // -----------------------------
+  // Start Interview
+  // -----------------------------
+
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  try {
-    const response = await startInterview({
-      role,
-      language,
-      experience,
-      difficulty,
-      interview_type: type,
-      questions,
-      follow_up: followUp,
-    });
-
-    console.log("Interview Started:", response);
-    //alert(JSON.stringify(response, null, 2));
-
-    navigate(`/interview/${response.session_id}`, {
-    state: {
-        ...response,
+    try {
+      const response = await startInterview({
         role,
-    },
-});
+        language,
+        experience,
+        difficulty,
+        interview_type: type,
+        questions,
+        follow_up: followUp,
 
-  } catch (error) {
-    console.error(error);
-    alert("Unable to start interview.");
-  }
-};
+        // Optional Resume
+        resume_analysis: resumeAnalysis,
+      });
+
+      navigate(`/interview/${response.session_id}`, {
+        state: {
+          ...response,
+          role,
+          language,
+          resumeAnalysis,
+        },
+      });
+    } catch (error) {
+      console.error(error);
+
+      alert("Unable to start interview.");
+    }
+  };
 
   return (
     <div className="setup-container">
-      <form className="setup-form" onSubmit={handleSubmit}>
+      <form
+        className="setup-form"
+        onSubmit={handleSubmit}
+      >
         <h1>Interview Setup</h1>
 
         {/* Job Role */}
+
         <label>Target Job Role</label>
 
         <input
@@ -97,12 +148,40 @@ function InterviewSetup() {
           </div>
         )}
 
+        {/* Resume */}
+
+        <label>Resume (Optional)</label>
+
+        <input
+          type="file"
+          accept=".pdf"
+          onChange={handleResumeUpload}
+        />
+
+        {uploading && (
+          <p>Analyzing resume...</p>
+        )}
+
+        {resumeAnalysis && (
+          <p
+            style={{
+              color: "green",
+              fontWeight: "bold",
+            }}
+          >
+            ✓ Resume analyzed successfully
+          </p>
+        )}
+
         {/* Experience */}
+
         <label>Experience Level</label>
 
         <select
           value={experience}
-          onChange={(e) => setExperience(e.target.value)}
+          onChange={(e) =>
+            setExperience(e.target.value)
+          }
         >
           <option>Beginner</option>
           <option>Intermediate</option>
@@ -110,11 +189,14 @@ function InterviewSetup() {
         </select>
 
         {/* Difficulty */}
+
         <label>Interview Difficulty</label>
 
         <select
           value={difficulty}
-          onChange={(e) => setDifficulty(e.target.value)}
+          onChange={(e) =>
+            setDifficulty(e.target.value)
+          }
         >
           <option>Easy</option>
           <option>Medium</option>
@@ -122,20 +204,27 @@ function InterviewSetup() {
         </select>
 
         {/* Interview Type */}
+
         <label>Interview Type</label>
 
-        <select value={type} onChange={(e) => setType(e.target.value)}>
+        <select
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+        >
           <option>Technical</option>
           <option>HR</option>
           <option>Mixed</option>
         </select>
 
-        {/* Tech Stack */}
+        {/* Technology */}
+
         <label>Programming Language / Tech Stack</label>
 
         <select
           value={language}
-          onChange={(e) => setLanguage(e.target.value)}
+          onChange={(e) =>
+            setLanguage(e.target.value)
+          }
         >
           <option>Python</option>
           <option>Java</option>
@@ -165,29 +254,44 @@ function InterviewSetup() {
           <option>Kubernetes</option>
         </select>
 
-        {/* Number of Questions */}
+        {/* Questions */}
+
         <label>Number of Questions</label>
 
         <select
           value={questions}
-          onChange={(e) => setQuestions(Number(e.target.value))}
+          onChange={(e) =>
+            setQuestions(Number(e.target.value))
+          }
         >
           <option value={5}>5</option>
           <option value={10}>10</option>
           <option value={15}>15</option>
         </select>
 
-        {/* Follow-up Questions */}
+        {/* Follow Up */}
+
         <label className="checkbox-label">
           <input
             type="checkbox"
             checked={followUp}
-            onChange={(e) => setFollowUp(e.target.checked)}
+            onChange={(e) =>
+              setFollowUp(e.target.checked)
+            }
           />
-          Include follow-up questions based on your answers.
+
+          Include follow-up questions based on
+          your answers.
         </label>
 
-        <button type="submit">Start Interview</button>
+        <button
+          type="submit"
+          disabled={uploading}
+        >
+          {uploading
+            ? "Analyzing Resume..."
+            : "Start Interview"}
+        </button>
       </form>
     </div>
   );
