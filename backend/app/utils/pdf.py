@@ -1,67 +1,48 @@
 import io
-
 import fitz
-import pytesseract
 
-from PIL import Image
-
-
-def extract_pdf_text(pdf_file):
+def extract_pdf_text(pdf_file) -> str:
     """
-    Extract text from PDF.
-
-    1. Try normal text extraction using PyMuPDF.
-    2. If no text exists, use OCR with Tesseract.
+    Extract text from an uploaded PDF.
+    1. Try high-performance text extraction using PyMuPDF (fitz).
+    2. If normal extraction yields minimal text, attempt OCR if pytesseract is available.
     """
-
-    pdf_file.seek(0)
-
-    pdf_bytes = pdf_file.read()
-
-    document = fitz.open(stream=pdf_bytes, filetype="pdf")
+    try:
+        pdf_file.seek(0)
+        pdf_bytes = pdf_file.read()
+    except Exception as e:
+        print(f"Error reading file bytes: {e}")
+        return ""
 
     text = ""
-
-    # -----------------------------
-    # Normal PDF extraction
-    # -----------------------------
-
-    for page in document:
-        text += page.get_text("text")
-
-    # If normal extraction worked
-    if text.strip():
-        print("✅ Text extracted using PyMuPDF")
+    try:
+        document = fitz.open(stream=pdf_bytes, filetype="pdf")
+        for page in document:
+            text += page.get_text("text") + "\n"
         document.close()
-        return text.strip()
+    except Exception as e:
+        print(f"PyMuPDF extraction error: {e}")
 
-    # -----------------------------
+    cleaned_text = text.strip()
+    if cleaned_text:
+        print(f"Extracted {len(cleaned_text)} characters using PyMuPDF")
+        return cleaned_text
+
     # OCR Fallback
-    # -----------------------------
+    try:
+        import pytesseract
+        from PIL import Image
 
-    print("⚠ No selectable text found.")
-    print("Running OCR...")
-
-    text = ""
-
-    for page in document:
-
-        # High quality image
-        pix = page.get_pixmap(dpi=300)
-
-        image = Image.open(
-            io.BytesIO(
-                pix.tobytes("png")
-            )
-        )
-
-        page_text = pytesseract.image_to_string(image)
-
-        text += page_text + "\n"
-
-    document.close()
-
-    print("OCR Complete")
-    print("Characters extracted:", len(text))
-
-    return text.strip()
+        print("No selectable text found, trying OCR fallback...")
+        document = fitz.open(stream=pdf_bytes, filetype="pdf")
+        ocr_text = ""
+        for page in document:
+            pix = page.get_pixmap(dpi=200)
+            img = Image.open(io.BytesIO(pix.tobytes("png")))
+            page_text = pytesseract.image_to_string(img)
+            ocr_text += page_text + "\n"
+        document.close()
+        return ocr_text.strip()
+    except Exception as ocr_err:
+        print(f"OCR not available or failed: {ocr_err}")
+        return cleaned_text

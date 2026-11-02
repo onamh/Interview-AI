@@ -1,28 +1,35 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import React from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import Navbar from "./components/navbar";
+import AuthModal from "./components/AuthModal";
 
-import Home from "./pages/Home";
-import InterviewSetup from "./pages/InterviewSetup";
-import Interview from "./pages/Interview";
-import Result from "./pages/Result";
-import Evaluation from "./pages/Evaluation";
-import Dashboard from "./pages/Dashboard";
+import Home from "./pages/home";
+import Dashboard from "./pages/dashboard";
+import InterviewSetup from "./pages/interviewsetup";
+import Interview from "./pages/interview";
+import Evaluation from "./pages/evaluation";
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/" element={<Dashboard />} />
-
-        <Route
-           path="/setup"
-          element={<InterviewSetup />}
-        />
-        <Route path="/interview/:sessionId" element={<Interview />} />
-        <Route path="/result" element={<Result />} />
-        <Route path="/evaluation" element={<Evaluation />} />
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <div className="app-layout">
+          <Navbar />
+          <AuthModal />
+          <main className="main-content">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/setup" element={<InterviewSetup />} />
+              <Route path="/interview/:sessionId" element={<Interview />} />
+              <Route path="/evaluation" element={<Evaluation />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </main>
+        </div>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

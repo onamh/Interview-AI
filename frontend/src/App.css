@@ -1,4 +1,9 @@
-#root {
-  width: 100%;
+.app-layout {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  flex: 1;
 }

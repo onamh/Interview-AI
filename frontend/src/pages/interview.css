@@ -1,170 +1,385 @@
-/* ================= GLOBAL ================= */
-
-.interview-container {
-  max-width: 950px;
-  margin: 40px auto;
-  padding: 30px;
-  font-family: Inter, Arial, Helvetica, sans-serif;
+.interview-room-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 5rem;
 }
 
-/* ================= HEADER ================= */
-
-.interview-container h1 {
-  text-align: center;
-  margin-bottom: 35px;
-  color: #222;
-  font-size: 36px;
-  font-weight: 700;
+/* Top Session Status Bar */
+.interview-top-bar {
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
 }
 
-/* ================= PROGRESS ================= */
-
-.progress-container {
-  width: 100%;
-  height: 14px;
-  background: #e5e7eb;
-  border-radius: 30px;
-  overflow: hidden;
-  margin-bottom: 12px;
+.session-badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
-.progress-bar {
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    #4f46e5,
-    #2563eb,
-    #06b6d4
-  );
-  transition: width 0.5s ease;
-}
-
-.progress-text {
-  text-align: right;
-  margin-bottom: 30px;
-  color: #555;
+.badge {
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
-/* ================= QUESTION CARD ================= */
+.role-badge {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+}
 
-.question-card {
-  background: white;
+.tech-badge {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.diff-badge {
+  background: rgba(148, 163, 184, 0.2);
+  color: #e2e8f0;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.question-stepper {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 260px;
+}
+
+.step-text {
+  font-size: 0.88rem;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.step-text strong {
+  color: #f8fafc;
+}
+
+.progress-track {
+  flex: 1;
+  height: 8px;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #3b82f6);
+  border-radius: 20px;
+  transition: width 0.4s ease;
+}
+
+.interview-error-alert {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  margin-bottom: 1.25rem;
+  font-size: 0.9rem;
+}
+
+/* Stage Layout */
+.interview-stage-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Interviewer Card */
+.interviewer-card {
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 1.75rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+.interviewer-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.interviewer-avatar {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #4f46e5, #06b6d4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+}
+
+.interviewer-avatar.speaking-wave .avatar-pulse {
+  position: absolute;
+  inset: -4px;
   border-radius: 18px;
-  padding: 30px;
-  margin-bottom: 25px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-  transition: 0.3s;
+  border: 2px solid #60a5fa;
+  animation: pulseAvatar 1.5s infinite;
 }
 
-.question-card:hover {
-  transform: translateY(-3px);
+@keyframes pulseAvatar {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.3); opacity: 0; }
 }
 
-.question-card h3 {
-  color: #4f46e5;
-  margin-bottom: 18px;
+.interviewer-info h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f8fafc;
+  margin-bottom: 0.2rem;
 }
 
-.question {
-  font-size: 22px;
-  line-height: 1.8;
-  color: #222;
+.ai-status {
+  font-size: 0.8rem;
+  color: #94a3b8;
 }
 
-/* ================= ANSWER BOX ================= */
-
-.answer-box {
-  width: 100%;
-  min-height: 230px;
-  padding: 18px;
-  font-size: 16px;
-  border: 2px solid #ddd;
-  border-radius: 14px;
-  resize: vertical;
-  outline: none;
-  transition: 0.3s;
-  line-height: 1.6;
-  background: white;
+.voice-controls {
+  margin-left: auto;
 }
 
-.answer-box:focus {
-  border-color: #4f46e5;
-  box-shadow: 0 0 12px rgba(79, 70, 229, 0.2);
-}
-
-.character-count {
-  text-align: right;
-  margin-top: 10px;
-  color: #666;
-  font-size: 14px;
-}
-
-/* ================= BUTTON ================= */
-
-.next-btn {
-  width: 100%;
-  padding: 16px;
-  margin-top: 28px;
-  border: none;
-  border-radius: 14px;
-  background: linear-gradient(
-    135deg,
-    #4f46e5,
-    #2563eb
-  );
-  color: white;
-  font-size: 17px;
-  font-weight: bold;
+.btn-tts-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: 0.3s;
+  transition: all 0.2s;
+  border: none;
 }
 
-.next-btn:hover:not(:disabled) {
+.btn-tts-toggle.play {
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  color: #a5b4fc;
+}
+
+.btn-tts-toggle.play:hover {
+  background: rgba(99, 102, 241, 0.25);
+  color: white;
+}
+
+.btn-tts-toggle.stop {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
+.question-box {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.question-text {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.55;
+  color: #f8fafc;
+  margin: 0;
+}
+
+.coaching-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  color: #fde047;
+}
+
+.hint-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.hint-text {
+  line-height: 1.45;
+  color: #fef08a;
+}
+
+/* Candidate Answer Card */
+.candidate-answer-card {
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 1.75rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+.answer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.answer-header h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.btn-mic-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #60a5fa;
+}
+
+.btn-mic-toggle:hover {
+  background: rgba(59, 130, 246, 0.25);
+  color: white;
+}
+
+.btn-mic-toggle.active-listening {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #fca5a5;
+  animation: pulseMic 1.5s infinite;
+}
+
+@keyframes pulseMic {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.rec-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ef4444;
+}
+
+.listening-indicator-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  color: #fca5a5;
+  margin-bottom: 0.85rem;
+}
+
+.wave-bar {
+  display: inline-block;
+  width: 3px;
+  height: 14px;
+  background: #ef4444;
+  border-radius: 2px;
+  animation: audioWave 1s ease-in-out infinite alternate;
+}
+
+.wave-bar:nth-child(2) { animation-delay: 0.2s; }
+.wave-bar:nth-child(3) { animation-delay: 0.4s; }
+.wave-bar:nth-child(4) { animation-delay: 0.6s; }
+
+@keyframes audioWave {
+  0% { height: 4px; }
+  100% { height: 18px; }
+}
+
+.answer-textarea {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+  padding: 1.15rem;
+  border-radius: 14px;
+  font-size: 1rem;
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 180px;
+  outline: none;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.answer-textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+.answer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.metrics-counter {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.divider {
+  opacity: 0.5;
+}
+
+.btn-submit-answer {
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  color: white;
+  border: none;
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.85rem 1.75rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.25s;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
+  margin-left: auto;
+}
+
+.btn-submit-answer:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 18px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.5);
 }
 
-.next-btn:disabled {
+.btn-submit-answer:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-/* ================= LOADING ================= */
-
-.loading {
-  text-align: center;
-  margin-top: 20px;
-  color: #4f46e5;
-  font-weight: 600;
-}
-
-/* ================= RESPONSIVE ================= */
-
-@media (max-width: 768px) {
-
-  .interview-container {
-    padding: 20px;
-  }
-
-  .interview-container h1 {
-    font-size: 30px;
-  }
-
-  .question-card {
-    padding: 22px;
-  }
-
-  .question {
-    font-size: 18px;
-  }
-
-  .answer-box {
-    min-height: 180px;
-    font-size: 15px;
-  }
-
-  .next-btn {
-    padding: 14px;
-  }
 }
