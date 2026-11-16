@@ -1,13 +1,47 @@
-import React, { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import React, { useState, useRef, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import "./Navbar.css";
+import {
+  Clock,
+  User as UserIcon,
+  LogOut,
+  Menu,
+  X,
+  ChevronDown,
+} from "lucide-react";
 
 function Navbar() {
-  const { user, logout, openAuthModal, demoLogin } = useAuth();
-  const navigate = useNavigate();
+  const { user, logout, openAuthModal } = useAuth();
   const location = useLocation();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setDropdownOpen(false);
+  }, [location.pathname]);
+
+  const navLinks = [
+    { label: "Home", path: "/" },
+    { label: "Practice", path: "/setup" },
+    { label: "Dashboard", path: "/dashboard", authOnly: true },
+    { label: "History", path: "/history", authOnly: true },
+    { label: "Resumes", path: "/resumes", authOnly: true },
+  ];
+
+  const filteredLinks = navLinks.filter((link) => !link.authOnly || user);
 
   const getInitials = (name) => {
     if (!name) return "U";
@@ -19,122 +53,147 @@ function Navbar() {
       .slice(0, 2);
   };
 
-  const handleDemoClick = async () => {
-    try {
-      await demoLogin();
-      navigate("/dashboard");
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const isActive = (path) => location.pathname === path;
-
   return (
-    <header className="main-navbar">
-      <div className="nav-container">
-        {/* Logo */}
-        <Link to="/" className="brand-logo">
-          <div className="logo-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-              <line x1="12" x2="12" y1="19" y2="22" />
-            </svg>
+    <header className="sticky top-0 z-40 w-full bg-[#f7f5f0]/95 backdrop-blur-md border-b border-[#e8e4dc]">
+      <nav className="max-w-6xl mx-auto h-16 px-4 sm:px-6 flex items-center justify-between gap-4">
+        {/* Logo & Brand */}
+        <Link to="/" className="flex items-center gap-2.5 shrink-0 group">
+          <div className="w-8 h-8 rounded-lg bg-[#171717] text-[#f7f5f0] flex items-center justify-center font-bold text-xs tracking-tight shadow-xs group-hover:scale-105 transition-transform">
+            AI
           </div>
-          <div className="brand-text">
-            <span className="brand-title">InterviewAI Coach</span>
-            <span className="brand-badge">Placement Pro</span>
-          </div>
+          <span className="text-base font-bold tracking-tight text-[#171717]">
+            Interview AI
+          </span>
         </Link>
 
-        {/* Navigation Links */}
-        <nav className={`nav-links ${menuOpen ? "open" : ""}`}>
-          <Link
-            to="/dashboard"
-            className={`nav-link ${isActive("/dashboard") ? "active" : ""}`}
-            onClick={() => setMenuOpen(false)}
-          >
-            Dashboard
-          </Link>
-          <Link
-            to="/setup"
-            className={`nav-link ${isActive("/setup") ? "active" : ""}`}
-            onClick={() => setMenuOpen(false)}
-          >
-            Mock Interview
-          </Link>
-          <Link
-            to="/dashboard#recent"
-            className="nav-link"
-            onClick={() => setMenuOpen(false)}
-          >
-            Past Reports
-          </Link>
-        </nav>
-
-        {/* Right Action / Profile */}
-        <div className="nav-actions">
-          {user ? (
-            <div className="user-profile">
-              <div className="user-avatar" title={user.name}>
-                {getInitials(user.name)}
-              </div>
-              <div className="user-details">
-                <span className="user-name">{user.name}</span>
-                <span className="user-role">Candidate</span>
-              </div>
-              <button
-                className="btn-logout"
-                onClick={() => {
-                  logout();
-                  navigate("/");
-                }}
-                title="Logout"
+        {/* Center Links (Desktop) */}
+        <div className="hidden md:flex items-center gap-1.5">
+          {filteredLinks.map((link) => {
+            const isActive = location.pathname === link.path;
+            return (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  isActive
+                    ? "text-[#171717] bg-[#ede8df]"
+                    : "text-[#57534e] hover:text-[#171717] hover:bg-[#ede8df]/60"
+                }`}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" x2="9" y1="12" y2="12" />
-                </svg>
+                {link.label}
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Right Section: Auth Buttons / Profile */}
+        <div className="flex items-center gap-2.5">
+          {user ? (
+            /* User Profile Menu */
+            <div className="relative" ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="flex items-center gap-2 p-1.5 pr-2.5 rounded-xl bg-white border border-[#e8e4dc] hover:bg-[#faf9f6] transition-colors cursor-pointer shadow-2xs"
+              >
+                <div className="w-7 h-7 rounded-lg bg-[#171717] text-white flex items-center justify-center font-semibold text-xs">
+                  {getInitials(user.name)}
+                </div>
+                <span className="text-xs font-semibold text-[#171717] hidden sm:block max-w-[120px] truncate">
+                  {user.name}
+                </span>
+                <ChevronDown className="w-3 h-3 text-[#78716c]" />
               </button>
+
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-2 w-52 bg-white border border-[#e8e4dc] rounded-xl shadow-lg py-1.5 z-50 text-xs">
+                  <div className="px-3.5 py-2 border-b border-[#f0ece3]">
+                    <p className="font-semibold text-[#171717] truncate">{user.name}</p>
+                    <p className="text-[11px] text-[#78716c] truncate">{user.email}</p>
+                  </div>
+
+                  <Link
+                    to="/profile"
+                    className="flex items-center gap-2 px-3.5 py-2 text-[#44403c] hover:bg-[#f7f5f0]"
+                  >
+                    <UserIcon className="w-3.5 h-3.5 text-[#78716c]" />
+                    <span>My Profile</span>
+                  </Link>
+
+                  <Link
+                    to="/history"
+                    className="flex items-center gap-2 px-3.5 py-2 text-[#44403c] hover:bg-[#f7f5f0]"
+                  >
+                    <Clock className="w-3.5 h-3.5 text-[#78716c]" />
+                    <span>Past Reports</span>
+                  </Link>
+
+                  <div className="border-t border-[#f0ece3] my-1"></div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      logout();
+                      navigate("/");
+                    }}
+                    className="w-full flex items-center gap-2 px-3.5 py-2 text-rose-600 hover:bg-rose-50 text-left cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Log Out</span>
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
-            <div className="auth-buttons">
+            /* Sign In Button */
+            <div className="flex items-center gap-2">
               <button
-                className="btn-demo-quick"
-                onClick={handleDemoClick}
-                title="Try instant demo account without registration"
-              >
-                ⚡ 1-Click Demo
-              </button>
-              <button
-                className="btn-login-trigger"
+                type="button"
                 onClick={() => openAuthModal("login")}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#171717] hover:bg-[#262626] transition-all shadow-xs cursor-pointer"
               >
                 Sign In
-              </button>
-              <button
-                className="btn-register-trigger"
-                onClick={() => openAuthModal("register")}
-              >
-                Register
               </button>
             </div>
           )}
 
-          {/* Mobile hamburger */}
+          {/* Mobile Hamburger Button */}
           <button
-            className="hamburger-btn"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Toggle navigation"
+            type="button"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 text-[#57534e] hover:bg-[#ede8df] rounded-lg"
+            aria-label="Toggle menu"
           >
-            <span className="bar"></span>
-            <span className="bar"></span>
-            <span className="bar"></span>
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
-      </div>
+      </nav>
+
+      {/* Mobile Navigation Drawer */}
+      {mobileMenuOpen && (
+        <div className="md:hidden py-3 px-4 border-t border-[#e8e4dc] bg-[#f7f5f0] space-y-1">
+          {filteredLinks.map((link) => (
+            <Link
+              key={link.path}
+              to={link.path}
+              className="block px-3 py-2 rounded-lg text-sm font-medium text-[#44403c] hover:bg-[#ede8df]"
+            >
+              {link.label}
+            </Link>
+          ))}
+          {!user && (
+            <div className="pt-2 border-t border-[#e8e4dc]">
+              <button
+                type="button"
+                onClick={() => openAuthModal("login")}
+                className="w-full py-2.5 text-xs font-semibold text-white bg-[#171717] rounded-lg cursor-pointer"
+              >
+                Sign In
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </header>
   );
 }

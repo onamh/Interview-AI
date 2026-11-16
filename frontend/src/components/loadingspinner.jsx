@@ -1,22 +1,16 @@
 import React from "react";
-import "./LoadingSpinner.css";
+import { Loader2 } from "lucide-react";
 
 function LoadingSpinner({ message = "AI is thinking..." }) {
   return (
-    <div className="spinner-overlay">
-      <div className="spinner-card">
-        <div className="pulsing-logo">
-          <div className="pulse-ring"></div>
-          <div className="pulse-ring delay"></div>
-          <div className="pulse-center">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-            </svg>
-          </div>
-        </div>
-        <p className="spinner-text">{message}</p>
-        <span className="spinner-subtext">Generating interview questions tailored to your profile...</span>
+    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+      <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600 mb-4 shadow-2xs">
+        <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
       </div>
+      <h3 className="text-base font-semibold text-slate-800 mb-1">{message}</h3>
+      <p className="text-xs text-slate-500 max-w-sm">
+        Preparing your customized placement questions and evaluation metrics.
+      </p>
     </div>
   );
 }

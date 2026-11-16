@@ -10,25 +10,40 @@ def interview_start_prompt(
 
     resume_section = ""
 
-    if resume_analysis:
+    if resume_analysis and isinstance(resume_analysis, dict):
+        skills = resume_analysis.get("skills", [])
+        projects = resume_analysis.get("projects", [])
+        experience_items = resume_analysis.get("experience", [])
+        cand_name = resume_analysis.get("candidate_name", "Candidate")
+        summary = resume_analysis.get("summary", "")
+
+        skills_fmt = ", ".join(skills) if skills else language
+        projects_fmt = "\n".join([f"  • {p}" for p in projects]) if projects else "Software development project"
+        exp_fmt = "\n".join([f"  • {e}" for e in experience_items]) if experience_items else "Academic project development"
+
         resume_section = f"""
+CANDIDATE RESUME PROFILE:
+- Name: {cand_name}
+- Extracted Technical Stack & Skills: {skills_fmt}
+- Featured Projects:
+{projects_fmt}
+- Experience / Coursework:
+{exp_fmt}
+- Profile Summary: {summary}
 
-Candidate Resume Analysis
-
+MANDATORY RESUME QUESTION INSTRUCTIONS:
+- Directly ask questions about the SPECIFIC projects listed above by name.
+- Ask how the candidate architected their project, why they selected specific tools/frameworks ({skills_fmt}), and what technical hurdles or database design choices they made.
+- Test in-depth understanding of the candidate's exact tech stack ({skills_fmt}).
+"""
+    elif resume_analysis:
+        resume_section = f"""
+Candidate Resume Analysis:
 {resume_analysis}
 
-Instructions for Resume-Based Interview
-
-- Use the resume as the primary source of interview questions.
-- Ask questions about:
-  • Projects
-  • Internship / Experience
-  • Technical Skills
-  • Tools & Technologies
-  • Education (if relevant)
-- Ask the candidate to explain decisions made in their projects.
-- Ask practical questions based on the technologies mentioned.
-- If the resume contains insufficient information, then generate normal role-based interview questions.
+Instructions for Resume-Based Interview:
+- Formulate questions directly derived from the projects, technologies, and skills mentioned in this resume.
+- Ask the candidate to explain architectural choices, trade-offs, and practical implementations from their listed projects.
 """
 
     return f"""
@@ -81,13 +96,13 @@ Rules
 6. Do not repeat questions.
 
 7. If a resume is provided:
-   - At least 70% of the questions should come from the resume.
-   - Focus on projects, internship, skills and technologies.
-   - Ask the candidate to explain design decisions and implementation.
-   - Ask follow-up style technical questions based on their projects.
+   - At least 70% to 100% of the questions MUST be based on the candidate's specific resume projects and technical skills.
+   - Questions 1 and 2 MUST explicitly ask about the projects listed on the resume by name (e.g. "On your resume you listed [Project Name]...").
+   - Ask how they structured the data, APIs, error handling, and component architecture in those projects.
+   - Subsequent questions must explore the candidate's exact tech stack.
 
 8. If no resume is provided:
-   - Generate a normal interview using the selected role and technology.
+   - Generate a structured role-based interview covering core concepts, system design, and practical scenarios for {role} using {language}.
 
 9. If Difficulty is Easy:
    - Start with fundamentals.
@@ -168,22 +183,14 @@ Candidate Resume
 
 Evaluate whether the candidate's interview answers
 are consistent with the resume.
-
-Comment on:
-
-- Resume quality
-- Project explanations
-- Technical depth
-- Skill alignment
 """
 
     return f"""
-You are a senior software engineering interviewer.
+You are an engineering interviewer conducting a realistic student mock interview evaluation.
 
 Evaluate the complete interview.
 
-Candidate
-
+Candidate Details
 Role: {role}
 Technology: {language}
 Experience: {experience}
@@ -192,61 +199,49 @@ Interview Type: {interview_type}
 
 {resume_section}
 
-Interview
-
+Interview Transcript
 {interview_history}
 
-Return ONLY JSON.
+Return ONLY valid JSON.
 
-Format
-
+Format:
 {{
-    "overall_score":85,
-    "technical_score":82,
-    "communication_score":90,
-
-    "strengths":[
+    "overall_score": 75,
+    "technical_score": 70,
+    "communication_score": 78,
+    "strengths": [
         "...",
         "..."
     ],
-
-    "weaknesses":[
+    "weaknesses": [
         "...",
         "..."
     ],
-
-    "suggestions":[
+    "suggestions": [
         "...",
         "..."
     ],
-
-    "overall_feedback":"..."
+    "overall_feedback": "...",
+    "question_reviews": [
+        {{
+            "question_number": 1,
+            "question": "...",
+            "candidate_answer": "...",
+            "score": 7,
+            "feedback": "...",
+            "ideal_answer": "..."
+        }}
+    ]
 }}
 
-Rules
-
-1. Scores between 0 and 100.
-
-2. Evaluate the interview as a whole.
-
-3. If a resume exists:
-   - Evaluate how well the candidate explained projects.
-   - Check consistency between the resume and answers.
-   - Comment on technical skills mentioned in the resume.
-
-4. Mention strengths.
-
-5. Mention weaknesses.
-
-6. Give actionable suggestions.
-
-7. Overall feedback should be 4-6 sentences.
-
-8. Return ONLY JSON.
-
-9. No markdown.
-
-10. No explanations.
-
-11. No code block.
+STRICT EVALUATION RULES:
+1. Punctuation only, empty, or non-answers (e.g. "..", "...", "?", ".", "idk", single letters, blank):
+   - You MUST give a score of EXACTLY 0 out of 10 for that question!
+   - In feedback, write: "No answer provided. Candidate entered only punctuation or blank characters instead of an explanation."
+   - If ALL answers are punctuation or empty, overall_score, technical_score, and communication_score MUST BE 0!
+   - In strengths, write: "None recorded. No substantive answers were provided."
+2. Real technical answers:
+   - Score fairly from 1 to 10 based on conceptual accuracy, clarity, and depth.
+3. Be helpful, constructive, and realistic for a candidate mock interview.
+4. Return ONLY JSON, no markdown blocks.
 """

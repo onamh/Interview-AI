@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { loginUser, registerUser, demoLoginUser, getCurrentUser } from "../api/interviewApi";
+import { loginUser, registerUser, demoLoginUser, getCurrentUser, logoutUser } from "../api/interviewApi";
 
 const AuthContext = createContext(null);
 
@@ -69,11 +69,17 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await logoutUser();
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setToken(null);
     setUser(null);
+  };
+
+  const updateUser = (updatedUser) => {
+    setUser(updatedUser);
+    localStorage.setItem("user", JSON.stringify(updatedUser));
   };
 
   const openAuthModal = (mode = "login") => {
@@ -100,6 +106,7 @@ export const AuthProvider = ({ children }) => {
         register,
         demoLogin,
         logout,
+        updateUser,
       }}
     >
       {children}

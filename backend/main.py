@@ -1,12 +1,20 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import router
 from app.database.database import init_db
 
+from app.api.auth_routes import router as auth_router
+from app.api.user_routes import router as user_router
+from app.api.resume_routes import router as resume_router
+from app.api.interview_routes import router as interview_router
+from app.api.dashboard_routes import router as dashboard_router
+from app.api.history_routes import router as history_router
+from app.api.voice_routes import router as voice_router
+from app.api.routes import router as legacy_router
+
 app = FastAPI(
-    title="AI Interview Coach API",
-    description="Full-stack AI Mock Interview & Placement Preparation Platform",
-    version="2.0.0"
+    title="Interview AI API",
+    description="Interview AI – Prepare smarter. Interview better. Grow confidently.",
+    version="2.1.0"
 )
 
 # Initialize database tables on application start
@@ -14,7 +22,7 @@ app = FastAPI(
 def on_startup():
     init_db()
 
-# Permissive CORS configuration to prevent any browser blocking
+# Permissive CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,18 +31,30 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include router directly and with /api prefix for maximum client flexibility
-app.include_router(router)
-app.include_router(router, prefix="/api")
+# Mount all modular API routers
+routers = [
+    auth_router,
+    user_router,
+    resume_router,
+    interview_router,
+    dashboard_router,
+    history_router,
+    voice_router,
+    legacy_router
+]
+
+for r in routers:
+    app.include_router(r)
+    app.include_router(r, prefix="/api")
 
 @app.get("/")
 def root():
     return {
-        "message": "AI Interview Coach Backend is running successfully!",
-        "version": "2.0.0",
+        "message": "Interview AI Backend is running successfully!",
+        "version": "2.1.0",
         "docs_url": "/docs"
     }
 
 @app.get("/health")
 def health():
-    return {"status": "healthy", "service": "AI Interview Coach API"}
+    return {"status": "healthy", "service": "Interview AI Backend"}

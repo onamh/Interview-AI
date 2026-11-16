@@ -14,7 +14,18 @@ from sqlalchemy.orm import Session
 from app.database.database import get_db
 from app.database.models import User
 
-# Secret key for JWT signing (uses environment variable or secure default)
+# Optional Argon2 support with seamless PBKDF2 fallback
+try:
+    from argon2 import PasswordHasher
+    from argon2.exceptions import VerifyMismatchError
+    ph = PasswordHasher(time_cost=2, memory_cost=65536, parallelism=1)
+    HAS_ARGON2 = True
+except (ImportError, Exception):
+    ph = None
+    HAS_ARGON2 = False
+    VerifyMismatchError = Exception
+
+# Secret key for JWT signing
 JWT_SECRET = "interview-coach-super-secret-key-2026-placement-prep"
 JWT_ALGORITHM = "HS256"
 TOKEN_EXPIRATION_DAYS = 7
@@ -34,7 +45,12 @@ def _b64_decode(data: str) -> bytes:
 
 
 def hash_password(password: str) -> str:
-    """Hash password using PBKDF2-HMAC-SHA256 with a random salt."""
+    """Hash password using Argon2id (RFC 9106 memory-hard cryptographic standard) with PBKDF2 fallback."""
+    if HAS_ARGON2 and ph is not None:
+        try:
+            return ph.hash(password)
+        except Exception:
+            pass
     salt = secrets.token_hex(16)
     hashed = hashlib.pbkdf2_hmac(
         "sha256",
@@ -42,22 +58,44 @@ def hash_password(password: str) -> str:
         salt.encode("utf-8"),
         100_000
     )
-    return f"{salt}${hashed.hex()}"
+    return f"pbkdf2${salt}${hashed.hex()}"
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify password against stored salt$hash."""
-    try:
-        salt, expected_hash = hashed_password.split("$", 1)
-        calculated = hashlib.pbkdf2_hmac(
-            "sha256",
-            plain_password.encode("utf-8"),
-            salt.encode("utf-8"),
-            100_000
-        )
-        return hmac.compare_digest(calculated.hex(), expected_hash)
-    except Exception:
+    """Verify password supporting Argon2 and PBKDF2."""
+    if hashed_password.startswith("$argon2"):
+        if HAS_ARGON2 and ph is not None:
+            try:
+                return ph.verify(hashed_password, plain_password)
+            except VerifyMismatchError:
+                return False
+            except Exception:
+                return False
         return False
+    elif hashed_password.startswith("pbkdf2$"):
+        try:
+            _, salt, expected_hash = hashed_password.split("$", 2)
+            calc = hashlib.pbkdf2_hmac(
+                "sha256",
+                plain_password.encode("utf-8"),
+                salt.encode("utf-8"),
+                100_000
+            )
+            return hmac.compare_digest(calc.hex(), expected_hash)
+        except Exception:
+            return False
+    else:
+        try:
+            salt, expected_hash = hashed_password.split("$", 1)
+            calc = hashlib.pbkdf2_hmac(
+                "sha256",
+                plain_password.encode("utf-8"),
+                salt.encode("utf-8"),
+                100_000
+            )
+            return hmac.compare_digest(calc.hex(), expected_hash)
+        except Exception:
+            return False
 
 
 def create_access_token(data: dict, expires_days: int = TOKEN_EXPIRATION_DAYS) -> str:
@@ -108,7 +146,6 @@ def decode_access_token(token: str) -> Optional[dict]:
         payload_bytes = _b64_decode(payload_b64)
         payload = json.loads(payload_bytes.decode("utf-8"))
 
-        # Check expiration
         if "exp" in payload and payload["exp"] < int(time.time()):
             return None
 

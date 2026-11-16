@@ -1,157 +1,86 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import "./home.css";
+import { ArrowRight } from "lucide-react";
 
 function Home() {
-  const navigate = useNavigate();
-  const { user, openAuthModal, demoLogin } = useAuth();
+  const { user } = useAuth();
 
-  const handleStart = () => {
-    navigate("/setup");
-  };
-
-  const handleDemo = async () => {
-    try {
-      await demoLogin();
-      navigate("/dashboard");
-    } catch (e) {
-      navigate("/setup");
-    }
-  };
+  const steps = [
+    {
+      num: "01",
+      title: "Choose Role & Experience",
+      desc: "Select your target field (e.g. Frontend, Python, Full Stack) and optionally attach your resume to tailor questions to your background.",
+    },
+    {
+      num: "02",
+      title: "Complete the Mock Interview",
+      desc: "Answer structured technical and behavioral questions at your own pace with clean, distraction-free typing.",
+    },
+    {
+      num: "03",
+      title: "Get Rubric Evaluation",
+      desc: "Receive clear scores across technical depth, clarity, and structure, accompanied by ideal benchmark model answers.",
+    },
+  ];
 
   return (
-    <div className="home-page">
-      {/* Hero Section */}
-      <section className="hero-section">
-        <div className="hero-badge">
-          <span>✨ Placement & Internship Ready</span>
-        </div>
-
-        <h1 className="hero-title">
-          Ace Your Next Tech Interview with{" "}
-          <span className="gradient-text">AI Coaching</span>
+    <div className="space-y-20 pb-20">
+      {/* Hero Welcome Section */}
+      <section className="pt-16 sm:pt-24 px-4 sm:px-6 max-w-5xl mx-auto text-center space-y-6">
+        <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-[#171717] leading-[1.12] max-w-3xl mx-auto">
+          Feel more confident about your next interview with personalized AI practice
         </h1>
 
-        <p className="hero-subtitle">
-          Practice role-specific mock interviews tailored to your exact tech stack and resume.
-          Answer via real-time voice or typing, hear the AI interviewer speak, and receive
-          in-depth performance rubrics with strengths and weaknesses.
+        <p className="text-base sm:text-lg text-[#57534e] max-w-2xl mx-auto leading-relaxed">
+          Welcome to Interview AI! Gain experience by practicing mock interviews based on your targeted job and resume, analyze feedback, and track your performance.
         </p>
 
-        <div className="hero-cta-group">
-          <button className="cta-primary" onClick={handleStart}>
-            Start Mock Interview →
-          </button>
-          {user ? (
-            <button className="cta-secondary" onClick={() => navigate("/dashboard")}>
-              View Your Dashboard
-            </button>
-          ) : (
-            <button className="cta-secondary" onClick={handleDemo}>
-              ⚡ 1-Click Demo Account
-            </button>
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-3">
+          <Link
+            to="/setup"
+            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-[#171717] hover:bg-[#262626] transition-all shadow-xs cursor-pointer"
+          >
+            <span>Start Practice Interview</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+
+          {user && (
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center gap-2 px-5 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-[#171717] bg-white border border-[#e8e4dc] hover:bg-[#faf9f6] transition-colors shadow-2xs"
+            >
+              <span>View Dashboard</span>
+            </Link>
           )}
         </div>
-
-        {/* Stats highlight pills */}
-        <div className="hero-pills">
-          <div className="pill-item">
-            <span className="pill-icon">🎯</span>
-            <span>Targeted Role Questions</span>
-          </div>
-          <div className="pill-item">
-            <span className="pill-icon">📄</span>
-            <span>PDF Resume Parsing</span>
-          </div>
-          <div className="pill-item">
-            <span className="pill-icon">🎙️</span>
-            <span>Voice Answering & TTS</span>
-          </div>
-          <div className="pill-item">
-            <span className="pill-icon">📈</span>
-            <span>Rubric Scoring (0-100)</span>
-          </div>
-        </div>
       </section>
 
-      {/* Feature Showcase Grid */}
-      <section className="features-section">
-        <div className="section-header">
-          <h2 className="section-title">Designed for College Placements</h2>
-          <p className="section-desc">
-            Everything you need to build confidence and excel in campus placement drives.
-          </p>
+      {/* Simple 3-Step Process */}
+      <section className="px-4 sm:px-6 max-w-5xl mx-auto space-y-8">
+        <div className="text-center space-y-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#78716c]">
+            How It Works
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#171717]">
+            Simple, structured interview preparation
+          </h2>
         </div>
 
-        <div className="features-grid">
-          <div className="feature-card">
-            <div className="feature-icon blue">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="16" y1="13" x2="8" y2="13" />
-                <line x1="16" y1="17" x2="8" y2="17" />
-                <polyline points="10 9 9 9 8 9" />
-              </svg>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {steps.map((st, i) => (
+            <div
+              key={i}
+              className="bg-white border border-[#e8e4dc] rounded-2xl p-6 shadow-2xs space-y-3"
+            >
+              <div className="w-8 h-8 rounded-lg bg-[#f7f5f0] border border-[#e8e4dc] text-[#171717] flex items-center justify-center font-bold text-xs">
+                {st.num}
+              </div>
+              <h3 className="text-base font-bold text-[#171717]">{st.title}</h3>
+              <p className="text-xs text-[#57534e] leading-relaxed">{st.desc}</p>
             </div>
-            <h3>Resume-Tailored Questions</h3>
-            <p>
-              Upload your PDF resume. Our AI extracts your actual projects, tech stack, and internships to generate project-specific viva and architecture questions.
-            </p>
-          </div>
-
-          <div className="feature-card">
-            <div className="feature-icon purple">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                <line x1="12" x2="12" y1="19" y2="22" />
-              </svg>
-            </div>
-            <h3>Speech & Voice Interaction</h3>
-            <p>
-              Speak your answers naturally using the browser microphone, or listen to the AI interviewer read out questions with speech synthesis.
-            </p>
-          </div>
-
-          <div className="feature-card">
-            <div className="feature-icon green">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="20" x2="18" y2="10" />
-                <line x1="12" y1="20" x2="12" y2="4" />
-                <line x1="6" y1="20" x2="6" y2="14" />
-              </svg>
-            </div>
-            <h3>Comprehensive Evaluation</h3>
-            <p>
-              Receive overall, technical, and communication scores, detailed strengths, actionable areas for improvement, and model answers for every question.
-            </p>
-          </div>
-
-          <div className="feature-card">
-            <div className="feature-icon amber">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 14 14" />
-              </svg>
-            </div>
-            <h3>Persistent Performance History</h3>
-            <p>
-              Database-backed candidate profiles track your progress over time, showing score trends and readiness levels on your personal dashboard.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Quick Launch Banner */}
-      <section className="cta-banner">
-        <div className="banner-content">
-          <h2>Ready to test your placement readiness?</h2>
-          <p>Choose your tech stack, set your difficulty, and start in under 30 seconds.</p>
-          <button className="cta-primary-large" onClick={handleStart}>
-            Launch Interview Now →
-          </button>
+          ))}
         </div>
       </section>
     </div>

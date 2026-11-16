@@ -182,6 +182,96 @@ def _generate_fallback_interview(
     }
 
 
+def _is_meaningful_answer(text: str) -> bool:
+    if not text:
+        return False
+    trimmed = str(text).strip()
+    if not trimmed:
+        return False
+    # Strip non-alphanumeric characters
+    clean = re.sub(r"[^\w\s]", "", trimmed).strip()
+    if len(clean) < 4:
+        return False
+    # Check throwaways
+    lower = clean.lower()
+    throwaways = {
+        "idk", "i dont know", "i dont no", "dont know", "dont no", "no idea",
+        "skip", "pass", "na", "none", "nothing", "nil", "dunno", "no", "yes",
+        "ok", "okay", "test", "testing"
+    }
+    if lower in throwaways:
+        return False
+    words = [w for w in clean.split() if len(w) > 1]
+    if len(words) < 3:
+        return False
+    # Check if user just repeated identical token
+    if len(set(words)) == 1 and len(words) < 5:
+        return False
+    return True
+
+
+def generate_follow_up_question(
+    role: str,
+    language: str,
+    previous_question: str,
+    previous_answer: str,
+    resume_analysis: Optional[dict] = None,
+    default_next_question: Optional[str] = None,
+) -> str:
+    """Generates an intelligent follow-up question based on candidate's previous answer and resume projects/stack."""
+    if not _is_meaningful_answer(previous_answer):
+        return default_next_question or f"Moving to our next core topic in {language}: How do you approach debugging and testing?"
+
+    skills = []
+    projects = []
+    if resume_analysis and isinstance(resume_analysis, dict):
+        skills = resume_analysis.get("skills", [])
+        projects = resume_analysis.get("projects", [])
+
+    prompt = f"""You are a technical interviewer interviewing a candidate for a {role} role using {language}.
+
+Candidate Resume Stack: {', '.join(skills) if skills else language}
+Candidate Resume Projects: {', '.join(projects) if projects else 'Software Project'}
+
+Previous Question Asked:
+"{previous_question}"
+
+Candidate's Answer:
+"{previous_answer}"
+
+Generate ONE focused, direct follow-up interview question that:
+1. Drills into the technical details, implementation choice, or trade-off the candidate just mentioned.
+2. Ties into their resume project or technology stack where appropriate.
+3. Is clear, conversational, and direct.
+
+Output ONLY the question string ending with a question mark. No quotes, no markdown, no introduction.
+"""
+    try:
+        res = _generate(prompt)
+        cleaned = res.strip().strip('"').strip("'")
+        if len(cleaned) > 20 and "?" in cleaned:
+            return cleaned
+    except Exception as e:
+        print(f"Follow-up generation notice: {e}. Utilizing smart context-aware follow-up.")
+
+    # Context-aware fallback
+    ans_lower = previous_answer.lower()
+    proj = projects[0] if projects else "your project"
+
+    if any(k in ans_lower for k in ["database", "sql", "query", "postgres", "mongo", "index", "table"]):
+        return f"Following up on the database details you mentioned: How did you handle query indexing, schema design, or transactions in '{proj}'?"
+    elif any(k in ans_lower for k in ["api", "rest", "endpoint", "fastapi", "express", "backend"]):
+        return f"Regarding your API implementation: How did you ensure data validation, security, and error responses when services failed?"
+    elif any(k in ans_lower for k in ["state", "component", "render", "hook", "react", "frontend", "ui"]):
+        return f"You touched on frontend architecture: How did you manage component re-renders, state flow, and asynchronous data fetching in '{proj}'?"
+    elif any(k in ans_lower for k in ["cache", "redis", "latency", "performance", "scale"]):
+        return f"Building on your point regarding performance: What caching invalidation rules or latency trade-offs did you encounter?"
+    else:
+        words = [w for w in previous_answer.split() if len(w) > 4]
+        kw = words[0] if words else language
+        return f"That's an interesting explanation regarding {kw}. What alternative approaches did you consider, and how did you verify your solution in '{proj}'?"
+
+
 def _generate_fallback_evaluation(
     role: str,
     language: str,
@@ -192,56 +282,37 @@ def _generate_fallback_evaluation(
     answers: List[str],
     resume_analysis: Optional[dict] = None
 ) -> Dict[str, Any]:
-    """Generates a realistic, highly thorough evaluation report if Gemini is offline."""
-    total_answers = len(answers)
-    total_words = sum(len(a.split()) for a in answers if a)
-    avg_words = total_words / max(total_answers, 1)
-
-    # Calculate realistic scores based on response depth and detail
-    if avg_words > 40:
-        overall = min(88 + int(avg_words / 15), 94)
-        technical = min(85 + int(avg_words / 12), 92)
-        comm = min(90 + int(avg_words / 20), 96)
-    elif avg_words > 20:
-        overall = min(75 + int(avg_words / 5), 84)
-        technical = min(73 + int(avg_words / 5), 82)
-        comm = min(78 + int(avg_words / 6), 86)
-    else:
-        overall = 64
-        technical = 62
-        comm = 66
-
-    strengths = [
-        f"Demonstrated good conceptual understanding of {language} and {role} fundamentals.",
-        "Structured responses clearly with practical development context.",
-        "Addressed core problem-solving requirements and trade-offs.",
-        "Communicated key ideas in a professional, candidate-ready tone."
-    ]
-
-    weaknesses = [
-        "Could include more specific architectural metrics, complexity analysis (Big-O), and benchmarks.",
-        "Expand on edge-case handling, test cases, and exception scenarios.",
-        "For system design questions, detail caching strategies (e.g. Redis) and horizontal scaling more explicitly."
-    ]
-
-    suggestions = [
-        f"Review standard placement DSA questions and algorithmic time-complexities in {language}.",
-        "When explaining projects, follow the STAR method (Situation, Task, Action, Result) to make impact quantifiable.",
-        "Practice whiteboarding system design architectures: load balancers, database sharding, and message queues.",
-        "Deepen your familiarity with cloud deployment patterns (Docker containers, AWS/GCP essentials)."
-    ]
-
+    """Generates an accurate, honest evaluation report based on actual answers."""
     question_reviews = []
+    q_scores = []
+
     for i, (q, a) in enumerate(zip(questions, answers), start=1):
-        q_score = min(max(int((len(a.split()) / 35.0) * 10), 6), 10) if a else 3
-        feedback = (
-            "Good explanation covering the fundamental concepts. For higher interview marks, provide a concrete code snippet or architectural diagram."
-            if len(a.split()) > 25 else
-            "Answer is on the right track but concise. In campus placement rounds, elaborate further on real-world edge cases and trade-offs."
-        )
+        a_clean = (a or "").strip()
+        has_real_answer = _is_meaningful_answer(a_clean)
+        clean_words = [w for w in re.sub(r"[^\w\s]", "", a_clean).split() if len(w) > 1]
+        word_count = len(clean_words)
+
+        if not a_clean or not has_real_answer or word_count < 3:
+            q_score = 0
+            feedback = "No answer provided. Candidate entered only punctuation or blank characters instead of an explanation."
+        elif word_count < 10:
+            q_score = 3
+            feedback = "Answer is extremely brief and lacks technical depth, concepts, or reasoning."
+        elif word_count < 25:
+            q_score = 6
+            feedback = "Basic answer provided covering surface points. In an interview, elaborate with practical examples."
+        elif word_count < 50:
+            q_score = 8
+            feedback = "Good explanation covering the core concepts and logic well."
+        else:
+            q_score = 9
+            feedback = "Thorough and structured explanation addressing implementation details and trade-offs."
+
+        q_scores.append(q_score)
         ideal = (
-            f"A complete answer should define the core principles of {language}, explain real-world use cases, discuss performance trade-offs, and cite production design patterns."
+            f"A complete answer should define the core principles of {language}, explain real-world use cases, and discuss trade-offs."
         )
+
         question_reviews.append({
             "question_number": i,
             "question": q,
@@ -251,18 +322,109 @@ def _generate_fallback_evaluation(
             "ideal_answer": ideal
         })
 
-    candidate_name = resume_analysis.get("candidate_name", "The candidate") if resume_analysis else "The candidate"
-    overall_feedback = (
-        f"{candidate_name} delivered a solid and articulate performance for the {role} mock interview. "
-        f"Technical comprehension in {language} was evident across responses. "
-        "With focused refinement on quantitative metrics, system scalability explanations, and edge-case testing, "
-        "the candidate will be very competitive in upcoming placement and internship interviews."
-    )
+    # Realistic overall scores calculated directly from questions
+    if q_scores and sum(q_scores) > 0:
+        overall = int((sum(q_scores) / (len(q_scores) * 10)) * 100)
+    else:
+        overall = 0
+
+    if overall == 0:
+        technical = 0
+        comm = 0
+        clarity = 0
+        structure = 0
+        confidence = 0
+        strengths = [
+            "None recorded. No substantive answers were provided during this session."
+        ]
+        weaknesses = [
+            "All submitted responses were empty, blank, or contained only punctuation.",
+            "No technical concepts, problem-solving logic, or explanations were demonstrated."
+        ]
+        suggestions = [
+            f"Review fundamental interview questions in {language}.",
+            "Type out complete technical definitions, code syntax, and examples.",
+            "Take time to answer each question thoroughly rather than skipping or entering punctuation."
+        ]
+        overall_feedback = (
+            "No valid answers were submitted. The candidate entered only punctuation marks or empty input. "
+            "A score of 0 / 100 has been assigned. Please provide real technical explanations to receive an evaluation."
+        )
+    elif overall < 40:
+        technical = max(0, min(100, overall - 2))
+        comm = max(0, min(100, overall + 2))
+        clarity = comm
+        structure = technical
+        confidence = overall
+        strengths = [
+            f"Attempted to address some technical questions in {language}."
+        ]
+        weaknesses = [
+            "Most questions were incomplete or lacked sufficient detail.",
+            "Lacked technical depth and problem-solving reasoning."
+        ]
+        suggestions = [
+            f"Review basic definitions and core interview questions for {language}.",
+            "Practice writing structured answers with definitions and practical examples.",
+            "Explain trade-offs and real-world use cases."
+        ]
+        overall_feedback = (
+            "The candidate submitted minimal responses for several questions. "
+            "To achieve a passing score, elaborate on technical fundamentals and provide structured examples."
+        )
+    elif overall < 70:
+        technical = max(10, min(100, overall - 2))
+        comm = max(10, min(100, overall + 2))
+        clarity = comm
+        structure = technical
+        confidence = overall
+        strengths = [
+            f"Familiar with fundamental terms in {language}.",
+            "Attempted to address the technical questions."
+        ]
+        weaknesses = [
+            "Answers were quite concise and lacked detailed examples or edge-case handling.",
+            "Could explain underlying architecture and complexity trade-offs more clearly."
+        ]
+        suggestions = [
+            f"Practice explaining standard {language} concepts using structured bullet points.",
+            "Mention code examples, library usage, and time/space complexity."
+        ]
+        overall_feedback = (
+            f"The candidate showed initial familiarity with {language} but responses were concise. "
+            "With more preparation on core concepts and practical examples, performance will improve."
+        )
+    else:
+        technical = max(10, min(100, overall - 2))
+        comm = max(10, min(100, overall + 2))
+        clarity = comm
+        structure = technical
+        confidence = overall
+        strengths = [
+            f"Demonstrated good understanding of {language} and {role} concepts.",
+            "Structured answers clearly and answered questions directly.",
+            "Showed practical problem-solving awareness."
+        ]
+        weaknesses = [
+            "Could expand further on performance optimization and scaling trade-offs.",
+            "Can mention more production debugging experiences."
+        ]
+        suggestions = [
+            f"Continue practicing advanced interview questions in {language}.",
+            "Prepare STAR format answers for behavioral and project-based questions."
+        ]
+        overall_feedback = (
+            f"Solid performance for the {role} interview. "
+            f"Good technical awareness in {language}. Continuing to practice with full mock rounds will build confidence."
+        )
 
     return {
         "overall_score": overall,
         "technical_score": technical,
         "communication_score": comm,
+        "clarity_score": clarity,
+        "structure_score": structure,
+        "confidence_score": confidence,
         "strengths": strengths,
         "weaknesses": weaknesses,
         "suggestions": suggestions,
@@ -335,7 +497,22 @@ def evaluate_interview(
     answers: List[str],
     resume_analysis: Optional[dict] = None,
 ) -> Dict[str, Any]:
-    """Evaluates the interview via Gemini with robust fallback."""
+    """Evaluates the interview via Gemini with robust fallback and strict validation."""
+    has_any_meaningful = any(_is_meaningful_answer(a) for a in answers)
+
+    # If no answers are meaningful (all dots, blank, or punctuation), enforce strict 0 score immediately
+    if not has_any_meaningful:
+        return _generate_fallback_evaluation(
+            role=role,
+            language=language,
+            experience=experience,
+            difficulty=difficulty,
+            interview_type=interview_type,
+            questions=questions,
+            answers=answers,
+            resume_analysis=resume_analysis
+        )
+
     try:
         prompt = interview_evaluation_prompt(
             role=role,
@@ -355,12 +532,51 @@ def evaluate_interview(
 
         required_keys = ["overall_score", "technical_score", "communication_score", "strengths", "weaknesses"]
         if all(k in data for k in required_keys):
-            # Attach question reviews if not present
-            if "question_reviews" not in data or not data["question_reviews"]:
+            # Sanitize each question review: non-meaningful/punctuation answers receive score 0
+            if "question_reviews" in data and isinstance(data["question_reviews"], list):
+                for qr, a in zip(data["question_reviews"], answers):
+                    if not _is_meaningful_answer(a):
+                        qr["score"] = 0
+                        qr["feedback"] = "No answer provided. Candidate entered only punctuation, blank characters, or non-answers instead of an explanation."
+            else:
                 fb = _generate_fallback_evaluation(
                     role, language, experience, difficulty, interview_type, questions, answers, resume_analysis
                 )
                 data["question_reviews"] = fb["question_reviews"]
+
+            # Calculate mathematical overall score directly from question scores for fair grading
+            q_scores = [qr.get("score", 0) for qr in data["question_reviews"]]
+            if q_scores and sum(q_scores) > 0:
+                data["overall_score"] = int((sum(q_scores) / (len(q_scores) * 10)) * 100)
+                data["technical_score"] = max(0, min(100, data["overall_score"] - 2))
+                data["communication_score"] = max(0, min(100, data["overall_score"] + 2))
+                data["clarity_score"] = data["communication_score"]
+                data["structure_score"] = data["technical_score"]
+                data["confidence_score"] = data["overall_score"]
+            else:
+                data["overall_score"] = 0
+                data["technical_score"] = 0
+                data["communication_score"] = 0
+                data["clarity_score"] = 0
+                data["structure_score"] = 0
+                data["confidence_score"] = 0
+                data["strengths"] = [
+                    "None recorded. No substantive answers were provided during this session."
+                ]
+                data["weaknesses"] = [
+                    "All submitted responses were empty, blank, or contained only punctuation.",
+                    "No technical concepts, problem-solving logic, or explanations were demonstrated."
+                ]
+                data["suggestions"] = [
+                    f"Review fundamental interview questions in {language}.",
+                    "Type out complete technical definitions, code syntax, and examples.",
+                    "Take time to answer each question thoroughly rather than skipping or entering punctuation."
+                ]
+                data["overall_feedback"] = (
+                    "No valid answers were submitted. The candidate entered only punctuation marks or empty input. "
+                    "A score of 0 / 100 has been assigned. Please provide real technical explanations to receive an evaluation."
+                )
+
             return data
     except Exception as e:
         print(f"Gemini evaluation note: {e}. Activating smart fallback evaluator.")

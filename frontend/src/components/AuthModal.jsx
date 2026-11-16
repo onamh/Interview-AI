@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import "./AuthModal.css";
+import { User, Mail, Lock, X, AlertCircle, Eye, EyeOff } from "lucide-react";
 
 function AuthModal() {
   const {
@@ -10,12 +10,13 @@ function AuthModal() {
     setAuthModalMode,
     login,
     register,
-    demoLogin,
   } = useAuth();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -24,13 +25,26 @@ function AuthModal() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    if (authModalMode === "register") {
+      if (!name.trim()) {
+        setError("Please enter your full name.");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError("Passwords do not match.");
+        return;
+      }
+      if (password.length < 6) {
+        setError("Password must be at least 6 characters.");
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
       if (authModalMode === "register") {
-        if (!name.trim()) {
-          throw new Error("Please enter your full name.");
-        }
         await register(name, email, password);
       } else {
         await login(email, password);
@@ -38,53 +52,54 @@ function AuthModal() {
       setName("");
       setEmail("");
       setPassword("");
+      setConfirmPassword("");
     } catch (err) {
       setError(
-        err.response?.data?.detail || err.message || "Authentication failed"
+        err.response?.data?.detail || err.message || "Authentication failed. Please check your details."
       );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDemo = async () => {
-    setError("");
-    setLoading(true);
-    try {
-      await demoLogin();
-    } catch (err) {
-      setError("Demo login failed, please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <div className="auth-overlay" onClick={closeAuthModal}>
+    <div
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
+      onClick={closeAuthModal}
+    >
       <div
-        className="auth-modal-card"
+        className="bg-white border border-[#e8e4dc] rounded-2xl shadow-xl w-full max-w-md p-6 relative"
         onClick={(e) => e.stopPropagation()}
       >
-        <button className="auth-close-btn" onClick={closeAuthModal}>
-          ✕
+        {/* Close Button */}
+        <button
+          onClick={closeAuthModal}
+          className="absolute top-4 right-4 p-1.5 text-[#a8a29e] hover:text-[#171717] rounded-full hover:bg-[#f7f5f0] transition-colors"
+        >
+          <X className="w-5 h-5" />
         </button>
 
-        <div className="auth-header">
-          <h2>
-            {authModalMode === "register" ? "Create Candidate Account" : "Candidate Sign In"}
+        {/* Header */}
+        <div className="mb-5">
+          <h2 className="text-xl font-bold text-[#171717] tracking-tight">
+            {authModalMode === "register" ? "Create Account" : "Welcome Back"}
           </h2>
-          <p>
+          <p className="text-xs text-[#57534e] mt-0.5">
             {authModalMode === "register"
-              ? "Track your mock interviews, placement scores, and strengths"
-              : "Access your interview history, stats, and personalized coaching"}
+              ? "Register to save your mock interview practice history and evaluations."
+              : "Sign in to access your candidate dashboard and past evaluation reports."}
           </p>
         </div>
 
-        {/* Tab toggle */}
-        <div className="auth-tabs">
+        {/* Tab Switcher */}
+        <div className="flex bg-[#f7f5f0] border border-[#e8e4dc] p-1 rounded-xl mb-4 text-xs font-semibold">
           <button
             type="button"
-            className={`auth-tab ${authModalMode === "login" ? "active" : ""}`}
+            className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer ${
+              authModalMode === "login"
+                ? "bg-white text-[#171717] shadow-2xs"
+                : "text-[#78716c] hover:text-[#171717]"
+            }`}
             onClick={() => {
               setAuthModalMode("login");
               setError("");
@@ -94,90 +109,121 @@ function AuthModal() {
           </button>
           <button
             type="button"
-            className={`auth-tab ${authModalMode === "register" ? "active" : ""}`}
+            className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer ${
+              authModalMode === "register"
+                ? "bg-white text-[#171717] shadow-2xs"
+                : "text-[#78716c] hover:text-[#171717]"
+            }`}
             onClick={() => {
               setAuthModalMode("register");
               setError("");
             }}
           >
-            Create Account
+            Register
           </button>
         </div>
 
-        {error && <div className="auth-error-alert">{error}</div>}
+        {/* Error Notification */}
+        {error && (
+          <div className="flex items-center gap-2 p-2.5 mb-4 text-xs font-medium text-rose-700 bg-rose-50 border border-rose-200 rounded-xl">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+            <span>{error}</span>
+          </div>
+        )}
 
-        <form onSubmit={handleSubmit} className="auth-form">
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-3.5">
           {authModalMode === "register" && (
-            <div className="auth-field">
-              <label>Full Name</label>
-              <input
-                type="text"
-                placeholder="e.g. Rahul Verma"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
+            <div>
+              <label className="block text-xs font-semibold text-[#44403c] mb-1">
+                Full Name
+              </label>
+              <div className="relative">
+                <User className="w-4 h-4 text-[#a8a29e] absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  placeholder="e.g. Rahul Sharma"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-[#f7f5f0] border border-[#e8e4dc] rounded-xl text-[#171717] focus:outline-hidden focus:border-[#171717]"
+                  required
+                />
+              </div>
             </div>
           )}
 
-          <div className="auth-field">
-            <label>Email Address</label>
-            <input
-              type="email"
-              placeholder="candidate@university.edu"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+          <div>
+            <label className="block text-xs font-semibold text-[#44403c] mb-1">
+              Email Address
+            </label>
+            <div className="relative">
+              <Mail className="w-4 h-4 text-[#a8a29e] absolute left-3 top-2.5" />
+              <input
+                type="email"
+                placeholder="name@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-sm bg-[#f7f5f0] border border-[#e8e4dc] rounded-xl text-[#171717] focus:outline-hidden focus:border-[#171717]"
+                required
+              />
+            </div>
           </div>
 
-          <div className="auth-field">
-            <label>Password</label>
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              minLength={6}
-              required
-            />
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-xs font-semibold text-[#44403c]">
+                Password
+              </label>
+            </div>
+            <div className="relative">
+              <Lock className="w-4 h-4 text-[#a8a29e] absolute left-3 top-2.5" />
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={6}
+                className="w-full pl-9 pr-9 py-2 text-sm bg-[#f7f5f0] border border-[#e8e4dc] rounded-xl text-[#171717] focus:outline-hidden focus:border-[#171717]"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-2.5 text-[#a8a29e] hover:text-[#57534e]"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
-          <button type="submit" className="auth-submit-btn" disabled={loading}>
-            {loading
-              ? "Authenticating..."
-              : authModalMode === "register"
-              ? "Register & Start"
-              : "Sign In"}
+          {authModalMode === "register" && (
+            <div>
+              <label className="block text-xs font-semibold text-[#44403c] mb-1">
+                Confirm Password
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-[#a8a29e] absolute left-3 top-2.5" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  minLength={6}
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-[#f7f5f0] border border-[#e8e4dc] rounded-xl text-[#171717] focus:outline-hidden focus:border-[#171717]"
+                  required
+                />
+              </div>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-[#171717] hover:bg-[#262626] transition-all cursor-pointer shadow-xs disabled:opacity-50"
+          >
+            {loading ? "Processing..." : authModalMode === "register" ? "Create Account" : "Sign In"}
           </button>
         </form>
-
-        <div className="auth-divider">
-          <span>OR QUICK DEMO</span>
-        </div>
-
-        <button
-          type="button"
-          className="auth-demo-btn"
-          onClick={handleDemo}
-          disabled={loading}
-        >
-          ⚡ Instant Demo Sign In (Aarav Sharma)
-        </button>
-
-        <p className="auth-footer-text">
-          {authModalMode === "register" ? (
-            <>
-              Already registered?{" "}
-              <span onClick={() => setAuthModalMode("login")}>Sign in here</span>
-            </>
-          ) : (
-            <>
-              New candidate?{" "}
-              <span onClick={() => setAuthModalMode("register")}>Create free account</span>
-            </>
-          )}
-        </p>
       </div>
     </div>
   );

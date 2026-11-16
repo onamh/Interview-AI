@@ -1,408 +1,429 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import jobRoles from "../data/jobroles";
 import { startInterview, uploadResume } from "../api/interviewApi";
 import LoadingSpinner from "../components/loadingspinner";
-import "./interviewsetup.css";
-
-const POPULAR_ROLES = [
-  "Frontend Developer",
-  "Backend Developer",
-  "Full Stack Engineer",
-  "Data Scientist",
-  "Machine Learning Engineer",
-  "DevOps Engineer",
-  "Android Developer",
-  "Software Engineer (Campus Placement)"
-];
-
-const TECH_OPTIONS = [
-  "Python", "React", "Java", "C++", "JavaScript", "TypeScript",
-  "Node.js & Express", "Django", "FastAPI", "Spring Boot", ".NET",
-  "MERN Stack", "SQL & Database Design", "Data Structures & Algorithms",
-  "Machine Learning & PyTorch", "Docker & Kubernetes", "AWS Cloud"
-];
+import {
+  Briefcase,
+  Code2,
+  FileText,
+  UploadCloud,
+  CheckCircle2,
+  Trash2,
+  ArrowRight,
+  Sliders,
+  ToggleLeft,
+  ToggleRight,
+  X,
+} from "lucide-react";
 
 function InterviewSetup() {
   const navigate = useNavigate();
 
-  const [role, setRole] = useState("Full Stack Engineer");
-  const [language, setLanguage] = useState("React");
-  const [experience, setExperience] = useState("Beginner");
+  // Form states
+  const [role, setRole] = useState("Full Stack Developer");
+  const [skills, setSkills] = useState([]);
+  const [skillInput, setSkillInput] = useState("");
+  const [experience, setExperience] = useState("Fresher (0-1 yrs)");
+  const [experienceYears, setExperienceYears] = useState("0");
+  const [interviewType, setInterviewType] = useState("Technical");
+  const [customTypeDesc, setCustomTypeDesc] = useState("");
   const [difficulty, setDifficulty] = useState("Medium");
-  const [type, setType] = useState("Technical");
-  const [questions, setQuestions] = useState(5);
+  const [questionsCount, setQuestionsCount] = useState(5);
   const [followUp, setFollowUp] = useState(true);
-
-  const [filteredRoles, setFilteredRoles] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [jobDescription, setJobDescription] = useState("");
 
   // Resume state
   const [resumeFile, setResumeFile] = useState(null);
   const [resumeAnalysis, setResumeAnalysis] = useState(null);
   const [uploadingResume, setUploadingResume] = useState(false);
-  const [uploadError, setUploadError] = useState("");
+  const [resumeError, setResumeError] = useState("");
 
-  // Starting interview state
-  const [starting, setStarting] = useState(false);
-  const [startError, setStartError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleRoleInputChange = (e) => {
-    const val = e.target.value;
-    setRole(val);
-    if (!val.trim()) {
-      setFilteredRoles([]);
-      setShowSuggestions(false);
-      return;
+  const roleSuggestions = [
+    "Frontend Developer",
+    "Python Developer",
+    "Full Stack Developer",
+    "AI/ML Engineer",
+    "Data Scientist",
+    "Software Engineer",
+  ];
+
+  const handleAddSkill = () => {
+    if (skillInput.trim() && !skills.includes(skillInput.trim())) {
+      setSkills([...skills, skillInput.trim()]);
+      setSkillInput("");
     }
-
-    const matched = (jobRoles || POPULAR_ROLES).filter((r) =>
-      r.toLowerCase().includes(val.toLowerCase())
-    );
-    setFilteredRoles(matched);
-    setShowSuggestions(true);
   };
 
-  const handleSelectRole = (selected) => {
-    setRole(selected);
-    setShowSuggestions(false);
+  const handleRemoveSkill = (skillToRemove) => {
+    setSkills(skills.filter((s) => s !== skillToRemove));
   };
 
-  const handleResumeUpload = async (e) => {
+  const handleResumeDrop = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (!file.name.toLowerCase().endsWith(".pdf")) {
-      setUploadError("Please upload a PDF file.");
+      setResumeError("Please upload a PDF document (.pdf)");
       return;
     }
 
-    setUploadError("");
     setResumeFile(file);
+    setResumeError("");
     setUploadingResume(true);
 
     try {
       const data = await uploadResume(file);
       setResumeAnalysis(data);
+
+      if (data.skills && data.skills.length > 0) {
+        const newSkills = Array.from(new Set([...skills, ...data.skills.slice(0, 6)]));
+        setSkills(newSkills);
+      }
     } catch (err) {
       console.error(err);
-      setUploadError(
-        err.response?.data?.detail || "Resume upload failed. You can still continue without a resume."
-      );
+      setResumeError("Failed to parse resume text. You can still proceed without a resume.");
     } finally {
       setUploadingResume(false);
     }
   };
 
-  const handleClearResume = () => {
+  const handleRemoveResume = () => {
     setResumeFile(null);
     setResumeAnalysis(null);
-    setUploadError("");
+    setResumeError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!role.trim()) {
-      alert("Please enter or select a target job role.");
+      setErrorMessage("Please specify your target role.");
       return;
     }
 
-    setStartError("");
-    setStarting(true);
+    setErrorMessage("");
+    setSubmitting(true);
+
+    const payload = {
+      role: role.trim(),
+      language: skills.join(", ") || "Core Technical Fundamentals",
+      experience: experience === "Experienced" ? `${experienceYears} years` : experience,
+      difficulty,
+      interview_type: interviewType === "Custom" ? `Custom: ${customTypeDesc}` : interviewType,
+      questions: Number(questionsCount) || 5,
+      follow_up: followUp,
+      job_description: jobDescription.trim() || undefined,
+      resume_analysis: resumeAnalysis || undefined,
+    };
 
     try {
-      const response = await startInterview({
-        role,
-        language,
-        experience,
-        difficulty,
-        interview_type: type,
-        questions,
-        follow_up: followUp,
-        resume_analysis: resumeAnalysis,
-      });
-
+      const response = await startInterview(payload);
       navigate(`/interview/${response.session_id}`, {
         state: {
-          ...response,
-          role,
-          language,
-          difficulty,
-          experience,
-          type,
-          resumeAnalysis,
+          session_id: response.session_id,
+          question: response.question,
+          current_question: 1,
+          total_questions: Number(questionsCount) || 5,
+          role: payload.role,
+          language: payload.language,
+          difficulty: payload.difficulty,
+          interview_type: payload.interview_type,
         },
       });
     } catch (err) {
       console.error(err);
-      setStartError(
-        err.response?.data?.detail || "Unable to start mock interview session. Please verify backend connection."
+      setErrorMessage(
+        err.response?.data?.detail || err.response?.data?.error || "Error initiating interview session."
       );
-      setStarting(false);
+      setSubmitting(false);
     }
   };
 
-  if (starting) {
+  if (submitting) {
     return (
-      <div className="setup-container">
-        <LoadingSpinner message="AI is preparing your personalized mock interview..." />
-      </div>
+      <LoadingSpinner message="Interview AI is formulating your personalized interview session..." />
     );
   }
 
   return (
-    <div className="setup-container">
-      <div className="setup-header">
-        <div className="badge-pill">⚙️ AI Mock Interview Setup</div>
-        <h1>Configure Your Practice Session</h1>
-        <p>
-          Customize your role, tech stack, and difficulty. Upload your resume to test yourself
-          on your actual academic and personal projects!
-        </p>
-      </div>
+    <div className="min-h-[calc(100vh-4rem)] bg-[#f7f5f0] py-8 px-4 sm:px-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="space-y-1">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#78716c]">
+            Configuration
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#171717] tracking-tight">
+            Configure Your Mock Interview
+          </h1>
+          <p className="text-xs text-[#57534e]">
+            Choose your target role, core technologies, and optional resume for tailored viva questions.
+          </p>
+        </div>
 
-      {startError && <div className="setup-error-banner">{startError}</div>}
+        {errorMessage && (
+          <div className="p-3.5 rounded-xl text-xs font-medium text-rose-700 bg-rose-50 border border-rose-200">
+            {errorMessage}
+          </div>
+        )}
 
-      <form className="setup-form" onSubmit={handleSubmit}>
-        {/* Step 1: Target Role */}
-        <div className="form-card">
-          <div className="form-card-title">
-            <span className="step-num">1</span>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Section 1: Role & Career Goal */}
+          <div className="bg-white border border-[#e8e4dc] rounded-2xl p-6 shadow-2xs space-y-3.5">
+            <div className="flex items-center gap-2 pb-2 border-b border-[#f0ece3]">
+              <Briefcase className="w-4 h-4 text-[#171717]" />
+              <h2 className="text-sm font-bold text-[#171717]">
+                1. Target Role
+              </h2>
+            </div>
+
             <div>
-              <h3>Target Job Role</h3>
-              <p>Type your desired role or choose a common placement profile</p>
+              <label className="block text-xs font-semibold text-[#44403c] mb-1">
+                Target Job Position
+              </label>
+              <input
+                type="text"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                placeholder="e.g. Frontend Developer, Python Engineer, Full Stack Developer..."
+                className="w-full px-3.5 py-2 text-sm bg-[#f7f5f0] border border-[#e8e4dc] rounded-xl text-[#171717] focus:outline-hidden focus:border-[#171717]"
+                required
+              />
+            </div>
+
+            {/* Role Suggestion Chips */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[11px] text-[#78716c]">Suggestions:</span>
+              {roleSuggestions.map((sug) => (
+                <button
+                  key={sug}
+                  type="button"
+                  onClick={() => setRole(sug)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                    role === sug
+                      ? "bg-[#171717] text-white"
+                      : "bg-[#f7f5f0] text-[#44403c] hover:bg-[#ede8df] border border-[#e8e4dc]"
+                  }`}
+                >
+                  {sug}
+                </button>
+              ))}
             </div>
           </div>
 
-          <div className="role-input-group">
-            <input
-              type="text"
-              placeholder="e.g. Full Stack Developer, Data Scientist..."
-              value={role}
-              onChange={handleRoleInputChange}
-              onFocus={() => setShowSuggestions(filteredRoles.length > 0)}
-              required
-            />
+          {/* Section 2: Skills & Tech Stack Multi-Tag */}
+          <div className="bg-white border border-[#e8e4dc] rounded-2xl p-6 shadow-2xs space-y-3.5">
+            <div className="flex items-center gap-2 pb-2 border-b border-[#f0ece3]">
+              <Code2 className="w-4 h-4 text-[#171717]" />
+              <h2 className="text-sm font-bold text-[#171717]">
+                2. Technologies & Topics
+              </h2>
+            </div>
 
-            {showSuggestions && filteredRoles.length > 0 && (
-              <div className="role-dropdown">
-                {filteredRoles.slice(0, 8).map((job) => (
-                  <div
-                    key={job}
-                    className="dropdown-item"
-                    onClick={() => handleSelectRole(job)}
-                  >
-                    {job}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="quick-roles-pills">
-            {POPULAR_ROLES.map((r) => (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={skillInput}
+                onChange={(e) => setSkillInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddSkill();
+                  }
+                }}
+                placeholder="Type a skill and click Add (e.g. React, SQL, Python, DSA)..."
+                className="flex-1 px-3.5 py-2 text-sm bg-[#f7f5f0] border border-[#e8e4dc] rounded-xl text-[#171717] focus:outline-hidden focus:border-[#171717]"
+              />
               <button
                 type="button"
-                key={r}
-                className={`pill-btn ${role === r ? "active" : ""}`}
-                onClick={() => setRole(r)}
+                onClick={handleAddSkill}
+                className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-white bg-[#171717] hover:bg-[#262626] rounded-xl cursor-pointer"
               >
-                {r}
+                Add
               </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Step 2: Tech Stack & Difficulty */}
-        <div className="form-card">
-          <div className="form-card-title">
-            <span className="step-num">2</span>
-            <div>
-              <h3>Technologies & Difficulty Parameters</h3>
-              <p>Tailor the technical domain and interview difficulty</p>
-            </div>
-          </div>
-
-          <div className="form-grid-2">
-            <div className="form-field">
-              <label>Primary Tech Stack / Subject</label>
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-              >
-                {TECH_OPTIONS.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
             </div>
 
-            <div className="form-field">
-              <label>Experience Level</label>
-              <select
-                value={experience}
-                onChange={(e) => setExperience(e.target.value)}
-              >
-                <option value="Beginner">Campus Fresher / Student (Beginner)</option>
-                <option value="Intermediate">Entry-Level Junior (Intermediate)</option>
-                <option value="Advanced">Experienced Associate (Advanced)</option>
-              </select>
-            </div>
-
-            <div className="form-field">
-              <label>Interview Difficulty</label>
-              <select
-                value={difficulty}
-                onChange={(e) => setDifficulty(e.target.value)}
-              >
-                <option value="Easy">Easy (Fundamentals & Definitions)</option>
-                <option value="Medium">Medium (Application, Scenarios & Code Logic)</option>
-                <option value="Hard">Hard (System Architecture, Concurrency & Edge Cases)</option>
-              </select>
-            </div>
-
-            <div className="form-field">
-              <label>Interview Round Type</label>
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-              >
-                <option value="Technical">Technical Round (Core Skills & Viva)</option>
-                <option value="HR">HR / Behavioral Round (Situational & Soft Skills)</option>
-                <option value="Mixed">Mixed Comprehensive (70% Tech + 30% HR)</option>
-              </select>
-            </div>
-
-            <div className="form-field">
-              <label>Total Questions</label>
-              <select
-                value={questions}
-                onChange={(e) => setQuestions(Number(e.target.value))}
-              >
-                <option value={3}>3 Questions (Quick Demo / Viva Mode)</option>
-                <option value={5}>5 Questions (Standard Mock Interview)</option>
-                <option value={10}>10 Questions (Deep Placement Drill)</option>
-              </select>
-            </div>
-
-            <div className="form-field checkbox-field">
-              <label className="checkbox-container">
-                <input
-                  type="checkbox"
-                  checked={followUp}
-                  onChange={(e) => setFollowUp(e.target.checked)}
-                />
-                <span className="checkbox-text">
-                  Enable adaptive follow-up style questions based on answer depth
+            {/* Selected Skills Chips */}
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {skills.map((sk) => (
+                <span
+                  key={sk}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#f7f5f0] text-[#171717] border border-[#e8e4dc]"
+                >
+                  {sk}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveSkill(sk)}
+                    className="hover:text-rose-600 cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
                 </span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        {/* Step 3: Resume Upload (Optional) */}
-        <div className="form-card">
-          <div className="form-card-title">
-            <span className="step-num">3</span>
-            <div>
-              <h3>Resume Intelligence (Optional)</h3>
-              <p>Upload your PDF resume to generate interview questions focused on your real projects</p>
+              ))}
             </div>
           </div>
 
-          {!resumeAnalysis ? (
-            <div className="resume-dropzone">
-              <input
-                type="file"
-                id="resume-file-input"
-                accept=".pdf"
-                onChange={handleResumeUpload}
-                disabled={uploadingResume}
-                style={{ display: "none" }}
-              />
-              <label htmlFor="resume-file-input" className="dropzone-label">
-                <div className="upload-icon">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="17 8 12 3 7 8" />
-                    <line x1="12" y1="3" x2="12" y2="15" />
-                  </svg>
-                </div>
-                {uploadingResume ? (
-                  <span className="upload-status">Analyzing PDF Resume with AI...</span>
-                ) : (
-                  <>
-                    <span className="upload-cta">Click to browse or drop your PDF Resume</span>
-                    <span className="upload-hint">Supported format: .PDF (Max 5MB)</span>
-                  </>
-                )}
-              </label>
-
-              {uploadError && <div className="upload-error">{uploadError}</div>}
+          {/* Section 3: Experience, Difficulty, and Format */}
+          <div className="bg-white border border-[#e8e4dc] rounded-2xl p-6 shadow-2xs space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b border-[#f0ece3]">
+              <Sliders className="w-4 h-4 text-[#171717]" />
+              <h2 className="text-sm font-bold text-[#171717]">
+                3. Interview Parameters
+              </h2>
             </div>
-          ) : (
-            <div className="resume-success-card">
-              <div className="success-header">
-                <div className="success-badge">
-                  <span>✓ Resume Analyzed Successfully</span>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Experience Level */}
+              <div>
+                <label className="block text-xs font-semibold text-[#44403c] mb-1">
+                  Experience Level
+                </label>
+                <select
+                  value={experience}
+                  onChange={(e) => setExperience(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-[#f7f5f0] border border-[#e8e4dc] rounded-xl text-[#171717] focus:outline-hidden"
+                >
+                  <option value="Student">Student (Pre-Final Year)</option>
+                  <option value="Fresher (0-1 yrs)">Fresher / Graduate</option>
+                  <option value="Internship">Internship Candidate</option>
+                  <option value="Entry-Level (1-3 yrs)">Entry-Level (1-3 yrs)</option>
+                </select>
+              </div>
+
+              {/* Interview Type */}
+              <div>
+                <label className="block text-xs font-semibold text-[#44403c] mb-1">
+                  Interview Round
+                </label>
+                <select
+                  value={interviewType}
+                  onChange={(e) => setInterviewType(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-[#f7f5f0] border border-[#e8e4dc] rounded-xl text-[#171717] focus:outline-hidden"
+                >
+                  <option value="Technical">Technical Viva (Concepts & Logic)</option>
+                  <option value="HR">HR & Behavioral</option>
+                  <option value="Mixed">Mixed (Technical + HR)</option>
+                </select>
+              </div>
+
+              {/* Difficulty */}
+              <div>
+                <label className="block text-xs font-semibold text-[#44403c] mb-1">
+                  Difficulty Level
+                </label>
+                <select
+                  value={difficulty}
+                  onChange={(e) => setDifficulty(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-[#f7f5f0] border border-[#e8e4dc] rounded-xl text-[#171717] focus:outline-hidden"
+                >
+                  <option value="Easy">Standard / Foundational</option>
+                  <option value="Medium">Medium / Placement Drive</option>
+                  <option value="Hard">Challenging / Advanced</option>
+                </select>
+              </div>
+
+              {/* Number of Questions */}
+              <div>
+                <label className="block text-xs font-semibold text-[#44403c] mb-1">
+                  Total Questions
+                </label>
+                <select
+                  value={questionsCount}
+                  onChange={(e) => setQuestionsCount(Number(e.target.value))}
+                  className="w-full px-3 py-2 text-xs bg-[#f7f5f0] border border-[#e8e4dc] rounded-xl text-[#171717] focus:outline-hidden"
+                >
+                  <option value={3}>Quick (3 questions)</option>
+                  <option value={5}>Standard (5 questions)</option>
+                  <option value={8}>Comprehensive (8 questions)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Follow-up Questions Toggle */}
+            <div className="pt-2 flex items-center justify-between border-t border-[#f0ece3]">
+              <div>
+                <h4 className="text-xs font-bold text-[#171717]">
+                  Include follow up questions based on your answers
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFollowUp(!followUp)}
+                className="cursor-pointer text-[#171717]"
+              >
+                {followUp ? <ToggleRight className="w-8 h-8" /> : <ToggleLeft className="w-8 h-8 text-[#d4cec2]" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Section 4: Resume Upload */}
+          <div className="bg-white border border-[#e8e4dc] rounded-2xl p-6 shadow-2xs space-y-3.5">
+            <div className="flex items-center gap-2 pb-2 border-b border-[#f0ece3]">
+              <FileText className="w-4 h-4 text-[#171717]" />
+              <h2 className="text-sm font-bold text-[#171717]">
+                4. Resume Upload (Optional)
+              </h2>
+            </div>
+
+            {!resumeFile ? (
+              <label className="border-2 border-dashed border-[#d4cec2] hover:border-[#171717] rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-colors bg-[#f7f5f0]">
+                <UploadCloud className="w-8 h-8 text-[#a8a29e] mb-1.5" />
+                <span className="text-xs font-bold text-[#171717]">
+                  Upload PDF Resume
+                </span>
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={handleResumeDrop}
+                  className="hidden"
+                />
+              </label>
+            ) : (
+              <div className="p-3.5 rounded-xl bg-[#f7f5f0] border border-[#e8e4dc] flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[#ede8df] text-[#171717] flex items-center justify-center font-bold">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#171717]">
+                      {resumeFile.name}
+                    </h4>
+                    <span className="text-[11px] text-[#78716c]">
+                      {uploadingResume ? "Analyzing resume..." : "Parsed & Active"}
+                    </span>
+                  </div>
                 </div>
+
                 <button
                   type="button"
-                  className="btn-remove-resume"
-                  onClick={handleClearResume}
+                  onClick={handleRemoveResume}
+                  className="p-1.5 text-[#a8a29e] hover:text-rose-600"
                 >
-                  Change / Remove
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
+            )}
 
-              <div className="parsed-summary">
-                <div className="summary-field">
-                  <strong>Candidate:</strong> {resumeAnalysis.candidate_name || "Candidate"}
-                </div>
-                {resumeAnalysis.summary && (
-                  <div className="summary-field">
-                    <strong>Summary:</strong> {resumeAnalysis.summary}
-                  </div>
-                )}
-                {resumeAnalysis.skills && resumeAnalysis.skills.length > 0 && (
-                  <div className="parsed-skills">
-                    <strong>Detected Skills:</strong>
-                    <div className="skills-wrap">
-                      {resumeAnalysis.skills.slice(0, 8).map((sk, idx) => (
-                        <span key={idx} className="skill-pill">
-                          {sk}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {resumeAnalysis.projects && resumeAnalysis.projects.length > 0 && (
-                  <div className="parsed-projects">
-                    <strong>Targeted Projects:</strong>
-                    <ul>
-                      {resumeAnalysis.projects.slice(0, 3).map((pj, idx) => (
-                        <li key={idx}>{pj}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+            {resumeError && <p className="text-xs text-rose-600">{resumeError}</p>}
+          </div>
 
-        {/* Submit */}
-        <div className="form-submit-row">
-          <button
-            type="submit"
-            className="btn-launch-interview"
-            disabled={uploadingResume}
-          >
-            🚀 Launch AI Mock Interview ({questions} Questions) →
-          </button>
-        </div>
-      </form>
+          {/* Final Submit Button */}
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-xs text-[#78716c]">
+              Configured: {questionsCount} questions • {difficulty} • {experience}
+            </span>
+            <button
+              type="submit"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-[#171717] hover:bg-[#262626] transition-all shadow-xs cursor-pointer"
+            >
+              <span>Start Interview Session</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

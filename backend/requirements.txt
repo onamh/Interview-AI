@@ -9,3 +9,6 @@ pymupdf==1.28.0
 Pillow
 requests==2.34.2
 httpx==0.28.1
+openai>=1.0.0
+faster-whisper>=1.0.0
+av<14

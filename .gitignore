@@ -19,3 +19,6 @@ frontend/dist/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Whisper Models
+backend/app/whisper_models/

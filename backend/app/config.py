@@ -17,3 +17,9 @@ else:
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 # Default to gemini-2.5-flash or gemini-1.5-flash which are stable models in google-genai
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
+# Whisper Speech-to-Text Configuration
+# Options for WHISPER_BACKEND: "local" (100% Free, offline) or "openai" (Cloud API)
+WHISPER_BACKEND = os.getenv("WHISPER_BACKEND", "local")
+WHISPER_MODEL = os.getenv("WHISPER_MODEL", "tiny")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
